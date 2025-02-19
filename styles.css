@@ -65,6 +65,12 @@ header h1 {
     font-family: 'Raleway';
 }
 
+.conteudo h3 {
+    font-size: 25px;
+    margin-top: 15px;
+    font-family: 'Raleway';
+}
+
 .conteudo p {
     font-size: 17px;
 }
@@ -546,4 +552,12 @@ code[class*="language-"] {
 
 .codes .terminal::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+a {
+    color: inherit; /* Remove a cor padrão dos links e deixa herdado */
+    text-decoration: none; /* Remove o sublinhado padrão */
+}
+a:hover {
+    text-decoration: underline; /* Adiciona sublinhado ao passar o mouse */
 }
