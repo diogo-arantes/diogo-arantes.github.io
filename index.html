@@ -198,7 +198,7 @@
         <div class="faq-title">Perguntas Frequentes</div>
 
         <div class="faq-item">
-            <button class="faq-question">Para quem é esse curso? <span class="arrow">&#9662;</span></button>
+            <button class="faq-question">Para quem é esse curso? <i class="fas fa-arrow-right arrow"></i></button>
             <div class="faq-answer">
                 <ul>
                     <li>Pessoas sem experiência que querem aprender programação do zero</li>
@@ -212,49 +212,49 @@
         </div>
 
         <div class="faq-item">
-            <button class="faq-question">O curso é indicado para iniciantes? <span class="arrow">&#9662;</span></button>
+            <button class="faq-question">O curso é indicado para iniciantes? <i class="fas fa-arrow-right arrow"></i></button>
             <div class="faq-answer">
                 <p>Sim! O curso foi desenvolvido para atender tanto iniciantes que nunca programaram antes quanto aqueles que desejam reforçar sua lógica de programação com exercícios práticos.</p>
             </div>
         </div>
 
         <div class="faq-item">
-            <button class="faq-question">Preciso ter conhecimento prévio em programação? <span class="arrow">&#9662;</span></button>
+            <button class="faq-question">Preciso ter conhecimento prévio em programação? <i class="fas fa-arrow-right arrow"></i></button>
             <div class="faq-answer">
                 <p>Não! Você aprenderá tudo do zero, começando pelos fundamentos até conceitos mais avançados de algoritmos e estruturas de dados.</p>
             </div>
         </div>
 
         <div class="faq-item">
-            <button class="faq-question">O curso oferece certificado de conclusão? <span class="arrow">&#9662;</span></button>
+            <button class="faq-question">O curso oferece certificado de conclusão? <i class="fas fa-arrow-right arrow"></i></button>
             <div class="faq-answer">
                 <p>Sim! Ao finalizar todas as aulas e atividades propostas, você receberá um <strong>certificado digital</strong> reconhecido, que pode ser utilizado para comprovar seu aprendizado e até mesmo anexado ao seu currículo.</p>
             </div>
         </div>
 
         <div class="faq-item">
-            <button class="faq-question">Posso acessar o curso a qualquer momento? <span class="arrow">&#9662;</span></button>
+            <button class="faq-question">Posso acessar o curso a qualquer momento? <i class="fas fa-arrow-right arrow"></i></button>
             <div class="faq-answer">
                 <p>Sim! O curso é 100% online e gravado, permitindo que você assista às aulas no seu próprio ritmo, sem prazos ou horários fixos.</p>
             </div>
         </div>
 
         <div class="faq-item">
-            <button class="faq-question">Há exercícios práticos no curso? <span class="arrow">&#9662;</span></button>
+            <button class="faq-question">Há exercícios práticos no curso? <i class="fas fa-arrow-right arrow"></i></button>
             <div class="faq-answer">
                 <p>Sim! Além das aulas teóricas, você encontrará diversos desafios práticos, listas de exercícios e projetos para aplicar os conceitos aprendidos na prática.</p>
             </div>
         </div>
 
         <div class="faq-item">
-            <button class="faq-question">Como funciona o 'Prazo de Garantia'? <span class="arrow">&#9662;</span></button>
+            <button class="faq-question">Como funciona o 'Prazo de Garantia'? <i class="fas fa-arrow-right arrow"></i></button>
             <div class="faq-answer">
                 <p>Você tem até 7 dias livres para navegar pelo curso. Se não estiver satisfeito, você será reembolsado.</p>
             </div>
         </div>
 
         <div class="faq-item">
-            <button class="faq-question">Como acessar o produto? <span class="arrow">&#9662;</span></button>
+            <button class="faq-question">Como acessar o produto? <i class="fas fa-arrow-right arrow"></i></button>
             <div class="faq-answer">
                 <ol>
                     <li>Faça login na Hotmart clicando em 'Entrar'</li>
@@ -265,7 +265,7 @@
         </div>
 
         <div class="faq-item">
-            <button class="faq-question">Como faço para comprar? <span class="arrow">&#9662;</span></button>
+            <button class="faq-question">Como faço para comprar? <i class="fas fa-arrow-right arrow"></i></button>
             <div class="faq-answer">
                 <p>Para comprar este curso é só clicar no botão "Quero Testar o Curso".</p>
             </div>
@@ -296,19 +296,34 @@
 
 
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-  const faqItems = document.querySelectorAll(".faq-item");
+document.querySelectorAll(".faq-question").forEach(button => {
+    button.addEventListener("click", () => {
+        const answer = button.nextElementSibling;
+        const icon = button.querySelector(".arrow");
+        const isActive = button.classList.contains("active");
 
-  faqItems.forEach((item) => {
-      const question = item.querySelector(".faq-question");
-      const answer = item.querySelector(".faq-answer");
+        // Fecha todas as respostas antes de abrir a clicada
+        document.querySelectorAll(".faq-answer").forEach(ans => {
+            ans.style.maxHeight = "0";
+            ans.style.padding = "0 15px";
+        });
 
-      question.addEventListener("click", function () {
-          // Alternar classe para abrir ou fechar
-          answer.style.display = (answer.style.display === "block") ? "none" : "block";
-          question.classList.toggle("open");
-      });
-  });
+        document.querySelectorAll(".faq-question").forEach(btn => btn.classList.remove("active"));
+        document.querySelectorAll(".faq-question .arrow").forEach(arrow => arrow.style.transform = "rotate(0deg)");
+
+        if (!isActive) {
+            answer.style.display = "block";  // Garante que está visível antes de calcular a altura
+            const realHeight = answer.scrollHeight+15 + "px"; // Obtém a altura real do conteúdo
+            answer.style.maxHeight = realHeight; // Aplica a altura dinamicamente
+            answer.style.padding = "15px"; // Adiciona espaço interno
+            button.classList.add("active");
+            icon.style.transform = "rotate(90deg)";
+        } else {
+            answer.style.maxHeight = "0";
+            answer.style.padding = "0 15px";
+            answer.style.display = "none"; // Esconde após a animação
+        }
+    });
 });
 
 document.addEventListener("DOMContentLoaded", function () {
