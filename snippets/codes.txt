@@ -1,0 +1,21 @@
+[tetris.py]
+# Tetris in Python
+import random
+
+def create_grid():
+    return [[0 for _ in range(10)] for _ in range(20)]
+
+def draw_grid(grid):
+    for row in grid:
+        print(" ".join(str(cell) for cell in row))
+
+[calculator.py]
+# Simple Calculator in Python
+def add(x, y):
+    return x + y
+
+def subtract(x, y):
+    return x - y
+
+print(add(5, 3))
+print(subtract(5, 3))

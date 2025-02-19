@@ -233,29 +233,7 @@
                 </div>
                 <span class='title'>&nbsp;Códigos interessantes</span>
             </div>
-
-            <!-- Code Snippets -->
-            <div class="code-box">
-                <p class="snippet">
-                    <i class="fas fa-arrow-right arrow"></i>
-                    <span>Tetris</span>
-                </p>
-                <div class="terminal">
-                    <pre><code id="code1" data-src="snippets/tetris.py"></code></pre>
-                    <button class="copy-btn" onclick="copyCode('code1')">Copy</button>
-                </div>
-            </div>
-
-            <div class="code-box">
-                <p class="snippet">
-                    <i class="fas fa-arrow-right arrow"></i>
-                    <span>Calculator</span>
-                </p>
-                <div class="terminal">
-                    <pre><code id="code2" data-src="snippets/calculator.py"></code></pre>
-                    <button class="copy-btn" onclick="copyCode('code2')">Copy</button>
-                </div>
-            </div>
+            <!-- Code boxes will be dynamically inserted here -->
         </div>
     </section>
 
@@ -280,56 +258,110 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 });
 
-// Function to load code from an external file
-async function loadCode(elementId, filePath) {
-    try {
-        const response = await fetch(filePath);
-        if (!response.ok) throw new Error('File not found');
-        const code = await response.text();
-        document.getElementById(elementId).innerText = code;
-    } catch (error) {
-        console.error('Error loading code:', error);
-        document.getElementById(elementId).innerText = 'Error loading code.';
+document.addEventListener("DOMContentLoaded", function () {
+    // Fetch the codes.txt file
+    fetch('codes.txt')
+        .then(response => response.text())
+        .then(data => {
+            console.log('Fetched data:', data); // Debugging
+            const snippets = parseSnippets(data);
+            console.log('Parsed snippets:', snippets); // Debugging
+            createCodeBoxes(snippets);
+        })
+        .catch(error => console.error('Error loading codes:', error));
+});
+
+// Function to parse the snippets from the file
+function parseSnippets(data) {
+    const snippets = [];
+    const lines = data.split('\n');
+    let currentSnippet = null;
+
+    lines.forEach(line => {
+        if (line.startsWith('[') && line.endsWith(']')) {
+            // New snippet section
+            if (currentSnippet) {
+                snippets.push(currentSnippet); // Save the previous snippet
+            }
+            currentSnippet = {
+                title: line.slice(1, -1), // Remove brackets
+                code: ''
+            };
+        } else if (currentSnippet) {
+            // Add code to the current snippet
+            currentSnippet.code += line + '\n';
+        }
+    });
+
+    // Add the last snippet
+    if (currentSnippet) {
+        snippets.push(currentSnippet);
     }
+
+    console.log('All snippets:', snippets); // Debugging
+    return snippets;
 }
 
-// Load code for all snippets
-document.querySelectorAll('code[data-src]').forEach(codeElement => {
-    const elementId = codeElement.id;
-    const filePath = codeElement.getAttribute('data-src');
-    loadCode(elementId, filePath);
-});
+// Function to create code boxes dynamically
+function createCodeBoxes(snippets) {
+    const codesSection = document.querySelector('.codes .content');
+    console.log('Creating code boxes for:', snippets); // Debugging
 
-// Show/hide terminal on title click
-document.querySelectorAll('.title').forEach(title => {
-    title.addEventListener('click', () => {
-        const terminal = title.nextElementSibling;
-        terminal.style.display = terminal.style.display === 'block' ? 'none' : 'block';
+    snippets.forEach(snippet => {
+        const codeBox = document.createElement('div');
+        codeBox.className = 'code-box';
+
+        const snippetTitle = document.createElement('p');
+        snippetTitle.className = 'snippet';
+        snippetTitle.innerHTML = `
+            <i class="fas fa-arrow-right arrow"></i>
+            <span>${snippet.title}</span>
+        `;
+
+        const terminal = document.createElement('div');
+        terminal.className = 'terminal';
+
+        const codeBlock = document.createElement('pre');
+        const codeElement = document.createElement('code');
+        codeElement.innerText = snippet.code.trim();
+        codeBlock.appendChild(codeElement);
+        terminal.appendChild(codeBlock);
+
+        const copyButton = document.createElement('button');
+        copyButton.className = 'copy-btn';
+        copyButton.innerText = 'Copiar';
+        copyButton.onclick = () => copyCode(codeElement);
+        terminal.appendChild(copyButton);
+
+        snippetTitle.addEventListener('click', () => {
+            snippetTitle.classList.toggle('open');
+            terminal.classList.toggle('open');
+        });
+
+        codeBox.appendChild(snippetTitle);
+        codeBox.appendChild(terminal);
+
+        codesSection.appendChild(codeBox);
+        console.log('Appended code box:', snippet.title); // Debugging
     });
-});
-
-// Copy code to clipboard
-function copyCode(id) {
-    const code = document.getElementById(id).innerText;
-    navigator.clipboard.writeText(code)
-        .then(() => alert('Code copied to clipboard!'))
-        .catch(() => alert('Failed to copy code.'));
 }
 
-// Show/hide terminal on title click
-document.querySelectorAll('.codes .title').forEach(title => {
-    title.addEventListener('click', () => {
-        const terminal = title.nextElementSibling;
-        terminal.style.display = terminal.style.display === 'block' ? 'none' : 'block';
-    });
-});
-
-// Copy code to clipboard
-function copyCode(id) {
-    const code = document.getElementById(id).innerText;
+// Function to copy code to clipboard
+function copyCode(codeElement) {
+    const code = codeElement.innerText;
     navigator.clipboard.writeText(code)
-        .then(() => alert('Code copied to clipboard!'))
-        .catch(() => alert('Failed to copy code.'));
+        .then(() => console.log('Code copied to clipboard!'))
+        .catch(() => console.log('Failed to copy code.'));
 }
 
+</script>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-PJXE6DVW0P"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-PJXE6DVW0P');
 </script>

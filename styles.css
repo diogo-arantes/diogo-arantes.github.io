@@ -377,37 +377,53 @@ header h1 {
   font-size: 25px;
 }
 
+.codes .snippet .arrow {
+    margin-right: 10px;
+    transition: transform 0.3s ease; /* Smooth rotation */
+}
+
+.codes .snippet.open .arrow {
+    transform: rotate(90deg); /* Rotate arrow down */
+}
+
 .codes .terminal {
-  display: none;
-  background-color: #2d2d2d;
-  border: 1px solid #4CAF50;
-  border-radius: 5px;
-  padding: 10px;
+  display: none; /* Initially hidden */
+  background-color: #1e1e1e; /* Dark background for code */
+  border: 1px solid #333; /* Subtle border */
+  border-radius: 8px; /* Rounded corners */
+  padding: 15px; /* Padding inside the box */
   margin-top: 10px;
   text-align: left;
   position: relative;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow for depth */
 }
 
-.codes .terminal pre {
-  font-family: Courier;
+.codes code {
   margin: 0;
-  color: #4CAF50;
+  color: #d4d4d4; /* Light gray text for contrast */
+  font-family: 'Courier New', Courier, monospace; /* Monospace font */
+  font-size: 13px;
+  line-height: 10px;
+  white-space: pre-wrap; /* Preserve formatting but wrap text */
+  word-wrap: break-word; /* Break long lines */
 }
 
 .codes .copy-btn {
   position: absolute;
   top: 10px;
   right: 10px;
-  background-color: #4CAF50;
+  background-color: #4CAF50; /* Green button */
   color: #ffffff;
   border: none;
   padding: 5px 10px;
-  border-radius: 3px;
+  border-radius: 4px;
   cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.3s ease; /* Smooth hover effect */
 }
 
 .codes .copy-btn:hover {
-  background-color: #45a049;
+  background-color: #45a049; /* Darker green on hover */
 }
 
 /* Responsividade para telas menores */
