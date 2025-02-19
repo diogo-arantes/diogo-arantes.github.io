@@ -17,12 +17,16 @@ body, html {
     background-color: #000;
     color: #ffffff;
     line-height: 35px;
-    background-image: url('bg.jpg'); /* Caminho da imagem */
-    background-repeat: repeat; /* Evita repetição */
+    background-image: url('bg.jpg');
+    background-repeat: repeat;
+    background-size: contain;
 }
 
 /* Cabeçalho */
 header {
+    max-width: 100%;
+    margin: 0 auto;
+    text-align: center;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -40,7 +44,7 @@ header {
 }
 
 header h1 {
-    font-size: 35px;
+    font-size: 45px;
     color: #e4e4e4;
     font-family: 'Bungee';
     font-weight: 400;
@@ -49,14 +53,14 @@ header h1 {
 
 /* Seção Conteúdo */
 .conteudo {
-    background-color: #2c2c2c;
+    background-color: #383838;
     text-align: left;
-    padding: 0 30px 0 30px;
+    padding: 80px 150px 80px 150px;
 }
 
 .conteudo h2 {
     font-size: 55px;
-    margin-bottom: 20px;
+    margin-bottom: 40px;
     font-family: 'Raleway';
 }
 
@@ -67,8 +71,7 @@ header h1 {
 /* Call to Action */
 .cta {
     text-align: center;
-    padding-top: 80px;
-    padding-bottom: 80px;
+    padding: 80px 150px 80px 150px;
 }
 
 .cta h3 {
@@ -80,7 +83,8 @@ header h1 {
 .botao {
     display: inline-block;
     background-color: #1a7f40;
-    color: white;
+    color: #d0f2e1;
+    text-shadow: 0 0 4px #000000;
     font-weight: bold;
     padding: 15px 30px;
     font-size: 18px;
@@ -95,13 +99,13 @@ header h1 {
 
 /* Seção do Autor */
 .autor {
-    padding: 40px;
     text-align: center;
+    padding: 80px 150px 80px 150px;
 }
 
 .autor h2 {
     color: #fff;
-    font-size: 70px;
+    font-size: 50px;
     margin-bottom: 20px;
     font-family: 'Raleway';
 }
@@ -113,7 +117,7 @@ header h1 {
 
 /* Seção Conteúdo Detalhado */
 .conteudo-detalhado {
-    padding: 40px;
+    padding: 80px 150px 80px 150px;
     text-align: left;
     background-color: #000;
 }
@@ -191,26 +195,6 @@ header h1 {
 }
 
 
-/* Devices Section */
-
-.devices {
-    color: #fff;
-    text-align: center;
-    font-weight: 400;
-    font-size: 25px;
-}
-
-.devices .small {
-    font-size: 25px;
-    margin: 15px;
-}
-
-.devices .big {
-    font-size: 50px;
-    margin: 20px;
-}
-
-
 /* Pricing Section */
 .pricing {
   background-color: #e69a1d;
@@ -221,8 +205,20 @@ header h1 {
 }
 
 .pricing .devices {
-  font-size: 28px;
-  margin-bottom: 10px;
+  color: #fff;
+  text-align: center;
+  font-weight: 400;
+  font-size: 25px;
+}
+
+.devices .small {
+  font-size: 25px;
+  margin: 15px;
+}
+
+.devices .big {
+  font-size: 50px;
+  margin: 20px;
 }
 
 .pricing .subtitle {
@@ -254,7 +250,8 @@ header h1 {
 .buy-button {
   display: inline-block;
   background-color: #1a7f40;
-  color: white;
+  color: #d0f2e1;
+  text-shadow: 0 0 4px #000000;
   padding: 15px 30px;
   margin-top: 20px;
   margin-bottom: 20px;
@@ -353,7 +350,7 @@ header h1 {
   }
 
   .conteudo, .cta, .autor, .conteudo-detalhado, .faq {
-      padding: 40px 20px;
+      padding: 40px 80px 40px 80px;
   }
 
   .conteudo h2, .autor h2, .conteudo-detalhado h1 {
@@ -371,16 +368,17 @@ header h1 {
   }
 
   .conteudo, .cta, .autor, .conteudo-detalhado, .faq {
-      padding: 30px 15px;
+      padding: 40px 80px 40px 80px;
   }
 
-  .conteudo h2, .autor h2, .conteudo-detalhado h1, .faq-title {
+  .conteudo h2, .autor h2, .cta h3, .conteudo-detalhado h1, .faq-title {
       font-size: 40px;
+      margin-bottom: 30px;
   }
 
-  .cta h3, .conteudo-detalhado h2 {
-      font-size: 22px;
-  }
+  .pricing {
+      padding: 20px 40px;
+   }
 
   .price-box {
       padding: 40px;
@@ -393,7 +391,7 @@ header h1 {
 
 @media (max-width: 480px) {
   .logo img {
-      width: 80%;
+      width: 50%;
   }
 
   header h1 {
@@ -401,11 +399,16 @@ header h1 {
   }
 
   .conteudo, .cta, .autor, .conteudo-detalhado, .faq {
-      padding: 20px 10px;
+      padding: 20px 40px 20px 40px;
   }
 
-  .conteudo h2, .autor h2, .conteudo-detalhado h1, .faq-title {
+  .pricing {
+      padding: 10px 20px;
+  }
+
+  .conteudo h2, .autor h2, .cta h3, .conteudo-detalhado h1, .faq-title {
       font-size: 24px;
+      margin-bottom: 15px;
   }
 
   .conteudo p, .conteudo-detalhado p, .faq-question, .faq-answer {
