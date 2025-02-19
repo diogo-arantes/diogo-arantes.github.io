@@ -1,0 +1,426 @@
+/* Importação de Fonte */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bungee&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Nunito Sans', sans-serif;
+}
+
+body, html {
+    width: 100%;
+    overflow-x: hidden;
+    background-color: #000;
+    color: #ffffff;
+    line-height: 35px;
+    background-image: url('bg.jpg'); /* Caminho da imagem */
+    background-repeat: repeat; /* Evita repetição */
+}
+
+/* Cabeçalho */
+header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 100px;
+    line-height: 50px;
+    text-align: center;
+}
+
+.bg-black {
+  background-color: #000;
+}
+
+.logo img {
+    width: 70%;
+}
+
+header h1 {
+    font-size: 35px;
+    color: #e4e4e4;
+    font-family: 'Bungee';
+    font-weight: 400;
+    font-style: normal;
+}
+
+/* Seção Conteúdo */
+.conteudo {
+    background-color: #2c2c2c;
+    text-align: left;
+    padding: 0 30px 0 30px;
+}
+
+.conteudo h2 {
+    font-size: 55px;
+    margin-bottom: 20px;
+    font-family: 'Raleway';
+}
+
+.conteudo p {
+    font-size: 17px;
+}
+
+/* Call to Action */
+.cta {
+    text-align: center;
+    padding-top: 80px;
+    padding-bottom: 80px;
+}
+
+.cta h3 {
+    font-size: 30px;
+    margin-bottom: 45px;
+    font-family: 'Raleway';
+}
+
+.botao {
+    display: inline-block;
+    background-color: #1a7f40;
+    color: white;
+    font-weight: bold;
+    padding: 15px 30px;
+    font-size: 18px;
+    text-decoration: none;
+    border-radius: 5px;
+    transition: 0.3s;
+}
+
+.botao:hover {
+    background-color: #146b34;
+}
+
+/* Seção do Autor */
+.autor {
+    padding: 40px;
+    text-align: center;
+}
+
+.autor h2 {
+    color: #fff;
+    font-size: 70px;
+    margin-bottom: 20px;
+    font-family: 'Raleway';
+}
+
+.autor p {
+    font-size: 17px;
+    margin-bottom: 10px;
+}
+
+/* Seção Conteúdo Detalhado */
+.conteudo-detalhado {
+    padding: 40px;
+    text-align: left;
+    background-color: #000;
+}
+
+.conteudo-detalhado h1 {
+  font-size: 40px;
+  color: #fff;
+  margin-bottom: 15px;
+  font-family: 'Raleway';
+}
+
+.conteudo-detalhado .descricao {
+  font-size: 20px;
+  color: #1a7f40;
+  margin-bottom: 15px;
+  font-family: 'Raleway';
+}
+
+.conteudo-detalhado h2 {
+    font-size: 23px;
+    color: #fff;
+    margin-bottom: 15px;
+    font-family: 'Raleway';
+}
+
+.conteudo-detalhado ul {
+    list-style-type: square;
+    margin-left: 30px;
+}
+
+.conteudo-detalhado li {
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: #ccc;
+}
+
+/* Guarantee Section */
+.guarantee {
+  color: white;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.guarantee .stars {
+    text-align: center;
+    margin: 20px 0;
+    font-size: 25px;
+    margin-bottom: 50px;
+    color: gold;
+}
+
+.guarantee .small-star {
+    font-size: 25px;
+}
+
+.guarantee .big-star {
+    font-size: 50px;
+}
+
+.guarantee h1 {
+  font-size: 70px;
+  letter-spacing: 8px;
+  font-weight: bold;
+  margin-bottom: 50px;
+}
+
+.guarantee h2 {
+  font-size: 30px;
+  margin-bottom: 40px;
+}
+
+.guarantee p {
+  font-size: 18px;
+  opacity: 0.8;
+}
+
+
+/* Devices Section */
+
+.devices {
+    color: #fff;
+    text-align: center;
+    font-weight: 400;
+    font-size: 25px;
+}
+
+.devices .small {
+    font-size: 25px;
+    margin: 15px;
+}
+
+.devices .big {
+    font-size: 50px;
+    margin: 20px;
+}
+
+
+/* Pricing Section */
+.pricing {
+  background-color: #e69a1d;
+  padding: 60px 20px;
+  color: #fff;
+  text-align: center;
+  font-size: 20px;
+}
+
+.pricing .devices {
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+
+.pricing .subtitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.price-box {
+  background-color: #111;
+  color: white;
+  padding: 80px;
+  max-width: 600px;
+  margin: 0 auto;
+  border-radius: 4px;
+}
+
+.price-box .small-text {
+  font-size: 25px;
+  opacity: 0.7;
+}
+
+.price-box .price {
+  font-size: 80px;
+  font-weight: bold;
+  margin: 40px 0 40px;
+}
+
+.buy-button {
+  display: inline-block;
+  background-color: #1a7f40;
+  color: white;
+  padding: 15px 30px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  font-size: 18px;
+  text-decoration: none;
+  border-radius: 5px;
+  font-weight: bold;
+  transition: 0.3s;
+}
+
+.buy-button:hover {
+  background-color: #146b34;
+}
+
+.secure-text {
+  font-size: 20px;
+  margin-top: 20px;
+  opacity: 0.7;
+}
+
+
+/* FAQ Section */
+.faq {
+  padding: 100px;
+  text-align: left;
+}
+
+.faq .faq-item {
+  margin-bottom: 10px;
+}
+
+.faq-title {
+  font-size: 60px;
+  font-weight: bold;
+  padding-bottom: 30px;
+  font-family: 'Raleway';
+  padding-bottom: 40px;
+}
+
+.faq-question {
+  width: 100%;
+  color: white;
+  padding: 15px;
+  border: none;
+  text-align: left;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.7s;
+  background-color: #555;
+}
+
+.faq-question:hover {
+  background-color: #333;
+}
+
+/* Estilizando o conteúdo escondido */
+.faq-answer {
+  background-color: #1a1a1a;
+  padding: 15px;
+  display: none;
+  font-size: 16px;
+  color: #9de048;
+  text-align: left;
+}
+
+.faq-answer ul, .faq-answer ol {
+  padding-left: 20px;
+}
+
+.faq-answer li {
+  margin-bottom: 5px;
+}
+
+/* Setinha do dropdown */
+.arrow {
+  font-size: 20px;
+  transition: transform 0.5s ease;
+}
+
+.open .arrow {
+  transform: rotate(180deg);
+}
+
+/* Responsividade para telas menores */
+@media (max-width: 1024px) {
+  header {
+      flex-direction: column;
+      text-align: center;
+      padding: 50px 20px;
+  }
+
+  .logo img {
+      width: 50%;
+      margin-bottom: 20px;
+  }
+
+  .conteudo, .cta, .autor, .conteudo-detalhado, .faq {
+      padding: 40px 20px;
+  }
+
+  .conteudo h2, .autor h2, .conteudo-detalhado h1 {
+      font-size: 32px;
+  }
+
+  .conteudo p, .conteudo-detalhado p, .faq-question, .faq-answer {
+      font-size: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .logo img {
+      width: 60%;
+  }
+
+  .conteudo, .cta, .autor, .conteudo-detalhado, .faq {
+      padding: 30px 15px;
+  }
+
+  .conteudo h2, .autor h2, .conteudo-detalhado h1, .faq-title {
+      font-size: 40px;
+  }
+
+  .cta h3, .conteudo-detalhado h2 {
+      font-size: 22px;
+  }
+
+  .price-box {
+      padding: 40px;
+  }
+
+  .price-box .price {
+      font-size: 50px;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo img {
+      width: 80%;
+  }
+
+  header h1 {
+      font-size: 24px;
+  }
+
+  .conteudo, .cta, .autor, .conteudo-detalhado, .faq {
+      padding: 20px 10px;
+  }
+
+  .conteudo h2, .autor h2, .conteudo-detalhado h1, .faq-title {
+      font-size: 24px;
+  }
+
+  .conteudo p, .conteudo-detalhado p, .faq-question, .faq-answer {
+      font-size: 14px;
+  }
+
+  .guarantee h1 {
+      font-size: 50px;
+  }
+
+  .price-box {
+      padding: 30px;
+  }
+
+  .price-box .price {
+      font-size: 40px;
+  }
+}
