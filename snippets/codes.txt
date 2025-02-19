@@ -1,21 +1,166 @@
 [tetris.py]
-# Tetris in Python
+import pygame, random
+
+pygame.init()
+LARGURA, ALTURA, TAMANHO = 300, 600, 30
+COLUNAS, LINHAS = LARGURA // TAMANHO, ALTURA // TAMANHO
+tela = pygame.display.set_mode((LARGURA, ALTURA))
+relogio = pygame.time.Clock()
+velocidade = 3
+
+FUNDO, CORES = "#000000", ["#FF3232", "#32FF32", "#3232FF", "#FFFF32", "#FF32FF"]
+
+FORMAS = [
+    [[1, 1, 1], [0, 1, 0]],  # T
+    [[1, 1, 1, 1]],           # I
+    [[1, 1], [1, 1]],         # O
+    [[1, 1, 0], [0, 1, 1]],   # Z
+    [[0, 1, 1], [1, 1, 0]],   # S
+    [[1, 1, 0], [1, 1]],      # L
+    [[0, 1, 1], [1, 1]]       # J
+]
+
+grade = [[0] * COLUNAS for _ in range(LINHAS)]
+
+class Bloco:
+    def __init__(self):
+        self.forma = random.choice(FORMAS)
+        self.cor = pygame.Color(random.choice(CORES))
+        self.x, self.y = COLUNAS // 2 - len(self.forma[0]) // 2, 0
+
+    def girar(self):
+        nova_forma = list(zip(*self.forma[::-1]))
+        if not self.colisao(0, 0, nova_forma):
+            self.forma = nova_forma
+
+    def mover(self, dx, dy):
+        if not self.colisao(dx, dy):
+            self.x += dx
+            self.y += dy
+        elif dy:
+            for i, linha in enumerate(self.forma):
+                for j, valor in enumerate(linha):
+                    if valor:
+                        grade[self.y + i][self.x + j] = self.cor
+            return False
+        return True
+
+    def colisao(self, dx, dy, forma=None):
+        forma = forma or self.forma
+        for i, linha in enumerate(forma):
+            for j, valor in enumerate(linha):
+                if valor:
+                    nx, ny = self.x + j + dx, self.y + i + dy
+                    if nx < 0 or nx >= COLUNAS or ny >= LINHAS or (ny >= 0 and grade[ny][nx]):
+                        return True
+        return False
+
+def limpar_linhas():
+    global grade
+    grade = [linha for linha in grade if any(celula == 0 for celula in linha)]
+    while len(grade) < LINHAS:
+        grade.insert(0, [0] * COLUNAS)
+
+bloco = Bloco()
+rodando, tempo_queda = True, 0
+
+while rodando:
+    tela.fill(FUNDO)
+    for evento in pygame.event.get():
+        if evento.type == pygame.QUIT:
+            rodando = False
+        elif evento.type == pygame.KEYDOWN:
+            if evento.key == pygame.K_LEFT:
+                bloco.mover(-1, 0)
+            if evento.key == pygame.K_RIGHT:
+                bloco.mover(1, 0)
+            if evento.key == pygame.K_DOWN:
+                bloco.mover(0, 1)
+            if evento.key == pygame.K_UP:
+                bloco.girar()
+
+    tempo_queda += 1
+    if tempo_queda > 60 // velocidade:
+        if not bloco.mover(0, 1):
+            limpar_linhas()
+            bloco = Bloco()
+        tempo_queda = 0
+
+    for y, linha in enumerate(grade):
+        for x, cor in enumerate(linha):
+            if cor:
+                pygame.draw.rect(tela, cor, (x * TAMANHO, y * TAMANHO, TAMANHO, TAMANHO), border_radius=5)
+
+    for i, linha in enumerate(bloco.forma):
+        for j, valor in enumerate(linha):
+            if valor:
+                pygame.draw.rect(tela, bloco.cor, ((bloco.x + j) * TAMANHO, (bloco.y + i) * TAMANHO, TAMANHO, TAMANHO), border_radius=5)
+
+    pygame.display.flip()
+    relogio.tick(60)
+
+pygame.quit()
+
+[planetas.py]
+import turtle
+import math
 import random
 
-def create_grid():
-    return [[0 for _ in range(10)] for _ in range(20)]
+screen = turtle.Screen()
+screen.bgcolor("black")
+screen.tracer(0)
 
-def draw_grid(grid):
-    for row in grid:
-        print(" ".join(str(cell) for cell in row))
+def criar_estrelas(num_estrelas):
+    estrelas = []
+    for _ in range(num_estrelas):
+        estrela = turtle.Turtle()
+        estrela.shape("circle")
+        estrela.color("white")
+        estrela.shapesize(random.uniform(0.05, 0.15))
+        estrela.penup()
+        estrela.goto(random.randint(-800, 800), random.randint(-400, 400))
+        estrelas.append(estrela)
+    return estrelas
 
-[calculator.py]
-# Simple Calculator in Python
-def add(x, y):
-    return x + y
+criar_estrelas(300)
 
-def subtract(x, y):
-    return x - y
+sun = turtle.Turtle()
+sun.shape("circle")
+sun.color("#FFD700")
+sun.shapesize(2)
 
-print(add(5, 3))
-print(subtract(5, 3))
+planets = [
+    ("Mercúrio", "#8B8B83", 0.4, 50, 2),
+    ("Vênus", "#E6B800", 0.6, 80, 1.5),
+    ("Terra", "#0077BE", 0.8, 120, 1.2),
+    ("Marte", "#FF4500", 0.7, 160, 1),
+    ("Júpiter", "#D2B48C", 1.5, 220, 0.8),
+    ("Saturno", "#F4A460", 1.3, 280, 0.6),
+    ("Urano", "#40E0D0", 1.1, 340, 0.5),
+    ("Netuno", "#0000FF", 1.0, 400, 0.4)
+]
+
+planet_turtles = []
+for planet in planets:
+    name, color, size, distance, speed = planet
+    p = turtle.Turtle()
+    p.shape("circle")
+    p.color(color)
+    p.shapesize(size)
+    p.penup()
+    p.goto(distance, 0)
+    p.pendown()
+    planet_turtles.append((p, distance, speed, 0))
+
+def move_planets():
+    for planet in planet_turtles:
+        p, distance, speed, angle = planet
+        x = distance * math.cos(math.radians(angle))
+        y = distance * math.sin(math.radians(angle))
+        p.goto(x, y)
+        planet_turtles[planet_turtles.index(planet)] = (p, distance, speed, angle + speed)
+
+while True:
+    screen.update()
+    move_planets()
+    turtle.time.sleep(0.03)

@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <title>HotFlame - Programação de Algoritmos</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
     <link rel="stylesheet" href="styles.css">
+
+    <title>HotFlame - Programação de Algoritmos</title>
 </head>
 <body>
 
@@ -237,6 +239,10 @@
         </div>
     </section>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+
 </body>
 </html>
 
@@ -274,7 +280,7 @@ document.addEventListener("DOMContentLoaded", function () {
 // Function to parse the snippets from the file
 function parseSnippets(data) {
     const snippets = [];
-    const lines = data.split('\n');
+    const lines = data.split('\r\n');
     let currentSnippet = null;
 
     lines.forEach(line => {
@@ -305,12 +311,13 @@ function parseSnippets(data) {
 // Function to create code boxes dynamically
 function createCodeBoxes(snippets) {
     const codesSection = document.querySelector('.codes .content');
-    console.log('Creating code boxes for:', snippets); // Debugging
 
     snippets.forEach(snippet => {
+        // Create the code box
         const codeBox = document.createElement('div');
         codeBox.className = 'code-box';
 
+        // Create the snippet title
         const snippetTitle = document.createElement('p');
         snippetTitle.className = 'snippet';
         snippetTitle.innerHTML = `
@@ -318,33 +325,66 @@ function createCodeBoxes(snippets) {
             <span>${snippet.title}</span>
         `;
 
+        // Create the terminal box (starts collapsed)
         const terminal = document.createElement('div');
         terminal.className = 'terminal';
+        terminal.style.maxHeight = "0"; // Starts closed
 
+        // Create the code block
         const codeBlock = document.createElement('pre');
         const codeElement = document.createElement('code');
-        codeElement.innerText = snippet.code.trim();
+
+        // Detect language (default to Python)
+        let languageClass = 'language-python';
+        if (snippet.title.toLowerCase().includes('javascript')) {
+            languageClass = 'language-javascript';
+        }
+
+        codeElement.className = languageClass;
+        codeElement.textContent = snippet.code.trim(); // Preserve line breaks
         codeBlock.appendChild(codeElement);
         terminal.appendChild(codeBlock);
 
+        // Apply Prism.js syntax highlighting
+        Prism.highlightElement(codeElement);
+
+        // Create the copy button
         const copyButton = document.createElement('button');
         copyButton.className = 'copy-btn';
         copyButton.innerText = 'Copiar';
         copyButton.onclick = () => copyCode(codeElement);
         terminal.appendChild(copyButton);
 
+        // Add click event to open/close snippet
         snippetTitle.addEventListener('click', () => {
-            snippetTitle.classList.toggle('open');
-            terminal.classList.toggle('open');
+            // Close any currently open terminal before opening the new one
+            document.querySelectorAll('.terminal.open').forEach(openTerminal => {
+                if (openTerminal !== terminal) {
+                    openTerminal.classList.remove('open');
+                    openTerminal.style.maxHeight = "0";
+                }
+            });
+
+            // Toggle the clicked snippet
+            const isOpen = terminal.classList.contains('open');
+            if (isOpen) {
+                terminal.classList.remove('open');
+                terminal.style.maxHeight = "0";
+            } else {
+                terminal.classList.add('open');
+                terminal.style.maxHeight = terminal.scrollHeight + "px"; // Animate opening
+            }
         });
 
+        // Append elements to the code box
         codeBox.appendChild(snippetTitle);
         codeBox.appendChild(terminal);
 
+        // Append the code box to the section
         codesSection.appendChild(codeBox);
-        console.log('Appended code box:', snippet.title); // Debugging
     });
 }
+
 
 // Function to copy code to clipboard
 function copyCode(codeElement) {
@@ -353,6 +393,7 @@ function copyCode(codeElement) {
         .then(() => console.log('Code copied to clipboard!'))
         .catch(() => console.log('Failed to copy code.'));
 }
+
 
 </script>
 

@@ -3,6 +3,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Bungee&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&display=swap');
 
 * {
     margin: 0;
@@ -387,25 +388,36 @@ header h1 {
 }
 
 .codes .terminal {
-  display: none; /* Initially hidden */
-  background-color: #1e1e1e; /* Dark background for code */
-  border: 1px solid #333; /* Subtle border */
-  border-radius: 8px; /* Rounded corners */
-  padding: 15px; /* Padding inside the box */
+  background-color: #1e1e1e;
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 0;
   margin-top: 10px;
   text-align: left;
   position: relative;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow for depth */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+  font-family: "Courier New", monospace;
+  max-height: 0; /* Start collapsed */
+  overflow-y: auto;
+  transition: max-height 0.4s ease-in-out, padding 0.2s ease-in-out;
 }
 
-.codes code {
-  margin: 0;
-  color: #d4d4d4; /* Light gray text for contrast */
-  font-family: 'Courier New', Courier, monospace; /* Monospace font */
-  font-size: 13px;
-  line-height: 10px;
-  white-space: pre-wrap; /* Preserve formatting but wrap text */
-  word-wrap: break-word; /* Break long lines */
+/* When open, it expands */
+.codes .terminal.open {
+  height: 500px; /* Adjust depending on your content */
+  padding: 15px;
+}
+
+.codes .terminal pre,
+.codes .terminal code,
+pre[class*="language-"],
+code[class*="language-"] {
+    font-family: "Fira Code", "JetBrains Mono", "Courier New", monospace !important;
+    font-size: 14px !important;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    background-color: inherit;
 }
 
 .codes .copy-btn {
@@ -516,4 +528,22 @@ header h1 {
   .price-box .price {
       font-size: 40px;
   }
+}
+
+.codes .terminal::-webkit-scrollbar {
+  width: 6px;
+}
+
+.codes .terminal::-webkit-scrollbar-track {
+  background: #2c2c2c;
+  border-radius: 10px;
+}
+
+.codes .terminal::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+.codes .terminal::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
