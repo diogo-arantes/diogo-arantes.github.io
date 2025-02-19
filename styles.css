@@ -303,6 +303,7 @@ header h1 {
   cursor: pointer;
   transition: 0.7s;
   background-color: #555;
+  border-radius: 7px;
 }
 
 .faq-question:hover {
