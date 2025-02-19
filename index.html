@@ -222,7 +222,42 @@
           </div>
       </div>
 
-  </section>
+    </section>
+
+    <!-- Pricing Codes -->
+    <section class="codes">
+        <div class="content">
+            <div class="terminal-title">
+                <div class="terminal-icon">
+                    <i class="fas fa-terminal"></i>
+                </div>
+                <span class='title'>&nbsp;Códigos interessantes</span>
+            </div>
+
+            <!-- Code Snippets -->
+            <div class="code-box">
+                <p class="snippet">
+                    <i class="fas fa-arrow-right arrow"></i>
+                    <span>Tetris</span>
+                </p>
+                <div class="terminal">
+                    <pre><code id="code1" data-src="snippets/tetris.py"></code></pre>
+                    <button class="copy-btn" onclick="copyCode('code1')">Copy</button>
+                </div>
+            </div>
+
+            <div class="code-box">
+                <p class="snippet">
+                    <i class="fas fa-arrow-right arrow"></i>
+                    <span>Calculator</span>
+                </p>
+                <div class="terminal">
+                    <pre><code id="code2" data-src="snippets/calculator.py"></code></pre>
+                    <button class="copy-btn" onclick="copyCode('code2')">Copy</button>
+                </div>
+            </div>
+        </div>
+    </section>
 
 </body>
 </html>
@@ -244,5 +279,57 @@ document.addEventListener("DOMContentLoaded", function () {
       });
   });
 });
+
+// Function to load code from an external file
+async function loadCode(elementId, filePath) {
+    try {
+        const response = await fetch(filePath);
+        if (!response.ok) throw new Error('File not found');
+        const code = await response.text();
+        document.getElementById(elementId).innerText = code;
+    } catch (error) {
+        console.error('Error loading code:', error);
+        document.getElementById(elementId).innerText = 'Error loading code.';
+    }
+}
+
+// Load code for all snippets
+document.querySelectorAll('code[data-src]').forEach(codeElement => {
+    const elementId = codeElement.id;
+    const filePath = codeElement.getAttribute('data-src');
+    loadCode(elementId, filePath);
+});
+
+// Show/hide terminal on title click
+document.querySelectorAll('.title').forEach(title => {
+    title.addEventListener('click', () => {
+        const terminal = title.nextElementSibling;
+        terminal.style.display = terminal.style.display === 'block' ? 'none' : 'block';
+    });
+});
+
+// Copy code to clipboard
+function copyCode(id) {
+    const code = document.getElementById(id).innerText;
+    navigator.clipboard.writeText(code)
+        .then(() => alert('Code copied to clipboard!'))
+        .catch(() => alert('Failed to copy code.'));
+}
+
+// Show/hide terminal on title click
+document.querySelectorAll('.codes .title').forEach(title => {
+    title.addEventListener('click', () => {
+        const terminal = title.nextElementSibling;
+        terminal.style.display = terminal.style.display === 'block' ? 'none' : 'block';
+    });
+});
+
+// Copy code to clipboard
+function copyCode(id) {
+    const code = document.getElementById(id).innerText;
+    navigator.clipboard.writeText(code)
+        .then(() => alert('Code copied to clipboard!'))
+        .catch(() => alert('Failed to copy code.'));
+}
 
 </script>

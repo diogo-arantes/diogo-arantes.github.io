@@ -336,6 +336,80 @@ header h1 {
   transform: rotate(180deg);
 }
 
+/* Codes Section */
+.codes {
+  padding: 40px;
+  text-align: left;
+}
+
+.codes .content {
+  max-width: 90%;
+  margin: 0 auto;
+}
+
+.codes .terminal-title {
+    display: flex;
+    align-items: flex-end;
+}
+
+.codes .title {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 30px;
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+.codes .terminal-icon i {
+  font-size: 3rem;
+  color: #4CAF50;
+}
+
+.codes .code-box {
+  margin: 20px 0;
+  cursor: pointer;
+}
+
+.codes .snippet {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #ccc;
+  margin-bottom: 10px;
+  font-size: 25px;
+}
+
+.codes .terminal {
+  display: none;
+  background-color: #2d2d2d;
+  border: 1px solid #4CAF50;
+  border-radius: 5px;
+  padding: 10px;
+  margin-top: 10px;
+  text-align: left;
+  position: relative;
+}
+
+.codes .terminal pre {
+  font-family: Courier;
+  margin: 0;
+  color: #4CAF50;
+}
+
+.codes .copy-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #4CAF50;
+  color: #ffffff;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.codes .copy-btn:hover {
+  background-color: #45a049;
+}
+
 /* Responsividade para telas menores */
 @media (max-width: 1024px) {
   header {
