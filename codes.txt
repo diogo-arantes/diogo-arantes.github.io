@@ -164,3 +164,134 @@ while True:
     screen.update()
     move_planets()
     turtle.time.sleep(0.03)
+
+[aquario.py]
+import turtle
+import random
+
+screen = turtle.Screen()
+screen.bgcolor("lightblue")
+screen.setup(width=1400, height=900)
+
+def create_fish_shape():
+    turtle.begin_poly()
+    turtle.forward(30)
+    turtle.left(120)
+    turtle.forward(30)
+    turtle.left(120)
+    turtle.forward(30)
+    turtle.left(120)
+    turtle.end_poly()
+    body = turtle.get_poly()
+
+    turtle.begin_poly()
+    turtle.forward(30)
+    turtle.right(120)
+    turtle.forward(30)
+    turtle.right(120)
+    turtle.forward(30)
+    turtle.right(120)
+    turtle.end_poly()
+    tail = turtle.get_poly()
+
+    screen.addshape("fish_body", body)
+    screen.addshape("fish_tail", tail)
+
+def create_fish():
+
+    fish_color = random.choice(["coral", "gold", "firebrick",
+                                "magenta", "green", "red"])
+    body = turtle.Turtle()
+    body.shape("fish_body")
+    body.color(fish_color)
+    body.penup()
+    body.speed(0)
+    body.setpos(random.randint(-380, 380), random.randint(-280, 280))
+    body.setheading(random.randint(0, 360))
+
+    tail = turtle.Turtle()
+    tail.shape("fish_tail")
+    tail.color(fish_color)
+    tail.penup()
+    tail.speed(0)
+    tail.setpos(body.pos())
+    tail.setheading(body.heading())
+
+    return body, tail
+
+create_fish_shape()
+
+peixes = [create_fish() for _ in range(30)]
+
+while True:
+    for body, tail in peixes:
+        if random.random() < 0.1:
+            turn = random.randint(-70, 70)
+            body.left(turn)
+            tail.left(turn)
+
+        body.forward(10)
+        tail.forward(10)
+
+        x, y = body.pos()
+        if abs(x) > 700 or abs(y) > 450:
+            body.setheading(body.heading() + 90)
+            tail.setheading(tail.heading() + 90)
+
+
+[relogio.py]
+import os
+
+import time
+digits = {
+    '0': ['  ***  ', ' *   * ', '*     *', '*     *', ' *   * ', '  ***  '],
+    '1': ['   *   ', '  **   ', '   *   ', '   *   ', '   *   ', '  ***  '],
+    '2': [' ***** ', '*     *', '     * ', '   *   ', ' *     ', '*******'],
+    '3': [' ***** ', '      *', '  **** ', '      *', '      *', ' ***** '],
+    '4': ['*     *', '*     *', ' ******', '      *', '      *', '      *'],
+    '5': ['*******', '*      ', '****** ', '      *', '      *', '****** '],
+    '6': [' ***** ', '*      ', '* **** ', '*     *', '*     *', ' ***** '],
+    '7': ['*******', '     * ', '    *  ', '   *   ', '  *    ', ' *     '],
+    '8': [' ***** ', '*     *', ' ***** ', '*     *', '*     *', ' ***** '],
+    '9': [' ***** ', '*     *', '* **** ', '      *', '      *', ' ***** '],
+    ':': ['       ', '   *   ', '       ', '   *   ', '       ', '       ']
+}
+while True:
+    current_time = time.strftime("%H:%M:%S")
+    for row in range(6):
+        for char in current_time:
+            print(digits[char][row], end=' ')
+        print()
+    print()
+    time.sleep(1)
+    os.system('clear')
+    print()
+
+[particulas.py]
+import pygame, random, math
+
+pygame.init()
+tela = pygame.display.set_mode((800, 600))
+cores = ["#FF3232", "#32FF32", "#3232FF", "#FFFF32", "#FF32FF"]
+particulas = []
+
+rodando = True
+while rodando:
+    tela.fill("#000000")
+    for e in pygame.event.get():
+        if e.type == pygame.QUIT:
+            rodando = False
+
+    x, y = pygame.mouse.get_pos()
+    particulas.append([x, y, pygame.Color(random.choice(cores)), random.uniform(3, 6), random.uniform(0, 2*math.pi)])
+
+    for p in particulas[:]:
+        p[0] += math.cos(p[4]) * 3
+        p[1] += math.sin(p[4]) * 3
+        p[3] *= 0.97
+        pygame.draw.circle(tela, p[2], (int(p[0]), int(p[1])), int(p[3]))
+        if p[3] < 1:
+            particulas.remove(p)
+
+    pygame.display.flip()
+pygame.quit()
