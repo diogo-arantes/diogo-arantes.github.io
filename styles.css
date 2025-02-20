@@ -378,6 +378,7 @@ header h1 {
 .codes .title {
     font-family: 'Courier New', Courier, monospace;
     font-size: 30px;
+    text-align: left;
     color: #4CAF50;
     font-weight: bold;
 }
@@ -459,6 +460,170 @@ code[class*="language-"] {
   background-color: #45a049; /* Darker green on hover */
 }
 
+
+
+
+
+
+
+.outros-conteudos {
+  padding: 50px;
+  background: #222;
+  color: white;
+  text-align: center;
+}
+
+.outros-conteudos h2 {
+  font-size: 32px;
+  margin-bottom: 20px;
+}
+
+.conteudos-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.conteudo-item {
+  background: #333;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: left;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.conteudo-item a {
+  color: #1DB954;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.conteudo-item a:hover {
+  text-decoration: underline;
+}
+
+
+
+
+/* Estilos do modal */
+.conteudo-completo-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6); /* Fundo escuro translúcido */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    overflow: none;
+    transition: opacity 0.4s ease-in-out, visibility 0.4s ease-in-out;
+}
+
+/* Quando ativo, o modal aparece */
+.conteudo-completo-container.ativo {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Corpo do modal - texto sobreposto */
+.conteudo-completo {
+    background: rgba(255, 255, 255, 0.1); /* Fundo transparente */
+    color: #fff; /* Texto branco */
+    padding: 30px;
+    width: 100%;
+    border-radius: 10px;
+    text-align: left;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    height: 100%;
+    overflow-y: auto;
+    transition: transform 0.3s ease-in-out;
+    backdrop-filter: blur(15px); /* Efeito de desfoque no fundo */
+}
+
+/* Botão de fechar */
+.fechar-conteudo {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 24px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: white;
+}
+
+.fechar-conteudo:hover {
+    color: #f44336;
+}
+
+/* Bloqueia a rolagem da página ao abrir o modal */
+body.modal-aberto {
+    overflow: hidden;
+}
+
+/* Ajusta o estilo do conteúdo no modal */
+.conteudo-completo h3 {
+    font-size: 24px;
+    margin-bottom: 15px;
+}
+
+.conteudo-completo p {
+    font-size: 18px;
+    line-height: 1.6;
+}
+
+.conteudo-oculto {
+  display: none;
+}
+
+
+
+
+.conteudos-ocultos {
+    text-align: center;
+    color: white;
+    padding: 15px;
+    margin-top: 20px;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: bold;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.conteudos-ocultos h1, h2 {
+  color: #4CAF50;
+  margin: 10px 0 10px 0;
+}
+.conteudos-ocultos h1 {
+  margin: 0 0 20px 0;
+  color: #fff;
+  font-size: 35px;
+}
+.conteudos-ocultos p {
+    line-height: 1.6;
+    color: #e9e9e9;
+}
+.conteudos-ocultos ul {
+    padding-left: 40px;
+    color: #e9e9e9;
+}
+.conteudos-ocultos .highlight {
+    width: fit-content;
+    background: #4c6aaf;
+    margin: 8px 0px 8px 0px;
+    padding: 5px 16px 5px 16px;
+    border-radius: 5px;
+}
+
+
+
+
 /* Responsividade para telas menores */
 @media (max-width: 1024px) {
   header {
@@ -510,6 +675,14 @@ code[class*="language-"] {
   .price-box .price {
       font-size: 50px;
   }
+
+  .conteudos-grid {
+      grid-template-columns: 1fr;
+  }
+
+  .codes .codes-box {
+      margin: 20px -44px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -549,6 +722,22 @@ code[class*="language-"] {
   .price-box .price {
       font-size: 40px;
   }
+
+  .conteudos-grid {
+      grid-template-columns: 1fr;
+  }
+
+  .codes {
+      padding: 10px;
+  }
+
+  .codes .title {
+      font-size: 25px;
+  }
+
+  .codes .codes-box {
+      margin: 20px -44px;
+  }
 }
 
 .codes .terminal::-webkit-scrollbar {
@@ -568,6 +757,27 @@ code[class*="language-"] {
 .codes .terminal::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+
+.leitor::-webkit-scrollbar {
+  width: 6px;
+}
+
+.leitor::-webkit-scrollbar-track {
+  background: #2c2c2c;
+  border-radius: 10px;
+}
+
+.leitor::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+.leitor::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+
 
 a {
     color: inherit; /* Remove a cor padrão dos links e deixa herdado */
