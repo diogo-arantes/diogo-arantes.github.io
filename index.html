@@ -450,7 +450,7 @@ document.querySelectorAll(".faq-question").forEach(button => {
 // Function to parse the snippets from the file
 function parseSnippets(data) {
     const snippets = [];
-    const lines = data.split('\n');
+    const lines = data.split('\r\n');
     let currentSnippet = null;
 
     lines.forEach(line => {
