@@ -479,3 +479,154 @@ while rodando:
     clock.tick(30)  # Suaviza a animação
 
 pygame.quit()
+
+[simulador_gravidade.py]
+import pygame
+import random
+
+# Inicializa o Pygame
+pygame.init()
+
+# Configurações da Tela
+LARGURA, ALTURA = 900, 900
+tela = pygame.display.set_mode((LARGURA, ALTURA))
+pygame.display.set_caption("Simulador de Gravidade")
+
+# Cores
+BRANCO = (255, 255, 255)
+PRETO = (20, 20, 30)
+AZUL = (50, 150, 255)
+VERDE = (50, 255, 150)
+VERMELHO = (255, 50, 50)
+CINZA = (100, 100, 100)
+AMARELO = (255, 215, 0)
+
+GRAVIDADE_MIN = 0.1  # Gravidade mínima (exemplo: Lua ~1.6 m/s²)
+GRAVIDADE_MAX = 25.0 / 10  # Gravidade máxima (exemplo: Júpiter ~24.8 m/s²)
+
+cores = [AZUL, VERDE, VERMELHO]
+
+# Relógio para controle de FPS
+clock = pygame.time.Clock()
+
+# Gravidade inicial (Terra)
+gravidade = 9.8 / 10  # Ajustado para a escala do jogo
+
+# Planetas e suas gravidades (m/s² convertidos para escala do jogo)
+planetas = {
+    "Lua": 1.6 / 10,
+    "Mercúrio": 3.7 / 10,
+    "Vênus": 8.9 / 10,
+    "Terra": 9.8 / 10,
+    "Marte": 3.7 / 10,
+    "Júpiter": 24.8 / 10,
+    "Saturno": 10.4 / 10,
+    "Urano": 8.7 / 10,
+    "Netuno": 11.2 / 10
+}
+
+# Classe para representar uma bola
+class Bola:
+    def __init__(self, x, y, raio, cor):
+        self.x = x
+        self.y = y
+        self.raio = raio
+        self.cor = cor
+        self.vel_y = 0  # Velocidade vertical
+        self.restituicao = 0.8  # Quanto da energia é preservada ao quicar
+
+    def atualizar(self):
+        # Aplica a gravidade
+        self.vel_y += gravidade
+        self.y += self.vel_y
+
+        # Se atingir o chão, quica
+        if self.y + self.raio > ALTURA:
+            self.y = ALTURA - self.raio
+            self.vel_y *= -self.restituicao  # Invertemos a direção e aplicamos amortecimento
+
+    def desenhar(self, tela):
+        pygame.draw.circle(tela, self.cor, (int(self.x), int(self.y)), self.raio)
+
+# Criando múltiplas bolas aleatórias
+def criar_bolas():
+    return [Bola(random.randint(50, LARGURA - 50), random.randint(50, 300), random.randint(10, 25), random.choice(cores)) for _ in range(10)]
+
+bolas = criar_bolas()
+
+# Fonte para exibir texto
+fonte = pygame.font.Font(None, 30)
+fonte_titulo = pygame.font.Font(None, 40)
+
+# Função para desenhar botões
+def desenhar_botao(tela, texto, pos, tamanho, cor, cor_texto=BRANCO):
+    """Desenha um botão na tela"""
+    rect = pygame.Rect(pos[0], pos[1], tamanho[0], tamanho[1])
+    pygame.draw.rect(tela, cor, rect, border_radius=10)
+    texto_render = fonte.render(texto, True, cor_texto)
+    tela.blit(texto_render, (pos[0] + 10, pos[1] + 10))
+    return rect
+
+# Loop do jogo
+rodando = True
+while rodando:
+    tela.fill(PRETO)
+
+    # Captura eventos
+    for evento in pygame.event.get():
+        if evento.type == pygame.QUIT:
+            rodando = False
+        elif evento.type == pygame.MOUSEBUTTONDOWN:
+            x, y = evento.pos
+
+            if 50 <= x <= 250 and 20 <= y <= 50:  # Se clicar no slider
+                gravidade = ((x - 50) / 200) * (GRAVIDADE_MAX - GRAVIDADE_MIN) + GRAVIDADE_MIN
+                gravidade = max(GRAVIDADE_MIN, min(GRAVIDADE_MAX, gravidade))
+
+            # Botão "Jogar de Novo"
+            if botao_reset.collidepoint(x, y):
+                bolas = criar_bolas()  # Reseta as bolas
+
+            # Botões "Planetas"
+            for i, (planeta, g) in enumerate(planetas.items()):
+                if botoes_planetas[i].collidepoint(x, y):
+                    gravidade = g  # Define a nova gravidade do planeta
+                    bolas = criar_bolas()  # Reseta as bolas para reiniciar a simulação
+
+
+            # Botões dos planetas
+            for i, (planeta, g) in enumerate(planetas.items()):
+                if botoes_planetas[i].collidepoint(x, y):
+                    gravidade = g  # Define a gravidade do planeta
+
+    # Atualiza e desenha as bolas
+    for bola in bolas:
+        bola.atualizar()
+        bola.desenhar(tela)
+
+    # Desenha o slider de gravidade (Barra)
+    pygame.draw.rect(tela, CINZA, (50, 20, 200, 10), border_radius=5)  # Linha de fundo do slider
+    pos_slider = int(50 + ((gravidade - GRAVIDADE_MIN) / (GRAVIDADE_MAX - GRAVIDADE_MIN)) * 200)
+    pygame.draw.circle(tela, AMARELO, (pos_slider, 25), 8)  # Indicador do slider
+
+    # Exibe o valor da gravidade
+    texto = fonte.render(f"Gravidade: {gravidade * 10:.1f} m/s²", True, BRANCO)
+    tela.blit(texto, (270, 15))
+
+    # Botão de reinício
+    botao_reset = desenhar_botao(tela, "Jogar de Novo", (LARGURA - 160, 20), (140, 40), VERMELHO)
+
+    # Título "Planetas"
+    texto_planetas = fonte_titulo.render("Escolha um planeta:", True, BRANCO)
+    tela.blit(texto_planetas, (50, 70))
+
+    # Botões dos planetas
+    botoes_planetas = []
+    for i, (planeta, g) in enumerate(planetas.items()):
+        botao = desenhar_botao(tela, planeta, (50 + (i % 4) * 190, 110 + (i // 4) * 50), (180, 40), AZUL)
+        botoes_planetas.append(botao)
+
+    pygame.display.flip()
+    clock.tick(60)
+
+pygame.quit()

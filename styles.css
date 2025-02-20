@@ -486,6 +486,20 @@ code[class*="language-"] {
   transition: background-color 0.3s ease; /* Smooth hover effect */
 }
 
+.codes .download-btn {
+  position: absolute;
+  top: 10px;
+  right: 70px;
+  background-color: #4CAF50; /* Green button */
+  color: #ffffff;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.3s ease; /* Smooth hover effect */
+}
+
 .codes .copy-btn:hover {
   background-color: #45a049; /* Darker green on hover */
 }

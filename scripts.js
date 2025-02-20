@@ -31,7 +31,7 @@ document.querySelectorAll(".faq-question").forEach(button => {
 // Function to parse the snippets from the file
 function parseSnippets(data) {
     const snippets = [];
-    const lines = data.split('\n');
+    const lines = data.split('\r\n');
     let currentSnippet = null;
 
     lines.forEach(line => {
@@ -106,6 +106,13 @@ function createCodeBoxes(snippets) {
         copyButton.onclick = () => copyCode(codeElement);
         terminal.appendChild(copyButton);
 
+        // Create the download button
+        const downloadButton = document.createElement('button');
+        downloadButton.className = 'download-btn';
+        downloadButton.innerText = 'Baixar Código';
+        downloadButton.onclick = () => downloadCode(snippet.title, codeElement);
+        terminal.appendChild(downloadButton);
+
         // Add click event to open/close snippet
         snippetTitle.addEventListener('click', () => {
             // Close any currently open terminal before opening the new one
@@ -139,6 +146,19 @@ function createCodeBoxes(snippets) {
     });
 }
 
+// Function to download code as a file
+function downloadCode(title, codeElement) {
+    const codeContent = codeElement.innerText;
+    const blob = new Blob([codeContent], { type: 'text/plain' });
+
+    // Cria um link para download
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = title.replace(/\s+/g, '_'); // Nome do arquivo baseado no título
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
 
 // Function to copy code to clipboard
 function copyCode(codeElement) {
