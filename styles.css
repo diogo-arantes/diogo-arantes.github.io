@@ -23,6 +23,10 @@ body, html {
     background-size: contain;
 }
 
+.text-shadow {
+    text-shadow: 0 0 4px #0000002b;
+}
+
 /* Cabeçalho */
 header {
     max-width: 100%;
@@ -50,14 +54,37 @@ header h1 {
     font-family: 'Bungee';
     font-weight: 400;
     font-style: normal;
+    text-shadow: 0 0 5px #0000002b;
+}
+
+.animated-bg {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    z-index: -1;
 }
 
 /* Seção Conteúdo */
 .conteudo {
-    background-color: #383838;
+    background-color: #3c3c3c;
     text-align: left;
     padding: 80px 150px 80px 150px;
 }
+
+.conteudo .codes-button {
+    position: absolute;
+    right: 20px;
+    top: -45px;
+    font-size: 16px;
+    color: #1a7f40;
+    border: 1px solid #1a7f40;
+    padding: 0px 4px 0 4px;
+    border-radius: 30px;
+    background-color: #1a7f401c;
+}
+
 
 .conteudo h2 {
     font-size: 55px;
@@ -73,6 +100,10 @@ header h1 {
 
 .conteudo p {
     font-size: 17px;
+}
+
+.conteudo ul {
+    padding-left: 20px;
 }
 
 /* Call to Action */
@@ -122,7 +153,6 @@ header h1 {
     margin-bottom: 10px;
 }
 
-/* Seção Conteúdo Detalhado */
 .conteudo-detalhado {
     padding: 80px 150px 80px 150px;
     text-align: left;
@@ -205,7 +235,7 @@ header h1 {
 /* Pricing Section */
 .pricing {
   background-color: #e69a1d;
-  padding: 60px 20px;
+  padding: 60px 0 70px 0;
   color: #fff;
   text-align: center;
   font-size: 20px;
@@ -372,7 +402,7 @@ header h1 {
 
 .codes .terminal-title {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
 }
 
 .codes .title {
@@ -641,10 +671,6 @@ body.modal-aberto {
       padding: 40px 80px 40px 80px;
   }
 
-  .conteudo h2, .autor h2, .conteudo-detalhado h1 {
-      font-size: 32px;
-  }
-
   .conteudo p, .conteudo-detalhado p, .faq-question, .faq-answer {
       font-size: 16px;
   }
@@ -653,6 +679,10 @@ body.modal-aberto {
 @media (max-width: 768px) {
   .logo img {
       width: 60%;
+  }
+
+  header .codes-button {
+    /* top: 340px; */
   }
 
   .conteudo, .cta, .autor, .conteudo-detalhado, .faq {
@@ -665,8 +695,8 @@ body.modal-aberto {
   }
 
   .pricing {
-      padding: 20px 40px;
-   }
+      padding: 20px 30px 30px 30px;
+  }
 
   .price-box {
       padding: 40px;
@@ -681,11 +711,8 @@ body.modal-aberto {
   }
 
   .codes {
-      margin: 5px 0;
-      padding: 0;
+      margin: 5px -60px;
   }
-
-
 }
 
 @media (max-width: 480px) {
@@ -697,16 +724,20 @@ body.modal-aberto {
       font-size: 24px;
   }
 
-  .conteudo, .cta, .autor, .conteudo-detalhado, .faq {
+  header .codes-button {
+    /* top: 290px; */
+  }
+
+  .conteudo, .cta, .autor, .conteudo-detalhado, .faq, .outros-conteudos {
       padding: 20px 40px 20px 40px;
   }
 
   .pricing {
-      padding: 10px 20px;
+      padding: 20px 30px 30px 30px;
   }
 
   .conteudo h2, .autor h2, .cta h3, .conteudo-detalhado h1, .faq-title {
-      font-size: 24px;
+      font-size: 30px;
       margin-bottom: 15px;
   }
 
@@ -735,8 +766,7 @@ body.modal-aberto {
   }
 
   .codes {
-      margin: 5px 0;
-      padding: 0;
+      margin: 5px -60px;
   }
 }
 
@@ -784,5 +814,5 @@ a {
     text-decoration: none; /* Remove o sublinhado padrão */
 }
 a:hover {
-    text-decoration: underline; /* Adiciona sublinhado ao passar o mouse */
+    text-decoration: none; /* Adiciona sublinhado ao passar o mouse */
 }

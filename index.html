@@ -5,12 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r121/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.dots.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.halo.min.js"></script>
     <link rel="stylesheet" href="styles.css">
-
     <title>HotFlame - Programação de Algoritmos</title>
 </head>
 <body>
-
     <!-- Cabeçalho -->
     <header>
         <div class="logo">
@@ -20,8 +21,9 @@
     </header>
 
     <!-- Seção Conteúdo -->
-    <section class="conteudo">
-        <h2>CONTEÚDO</h2>
+    <section id="conteudo" class="conteudo">
+        <span class='codes-button'><a href="#codes" onclick="gtag('event', 'click_codigos', {'event_category': 'Navegação', 'event_label': 'Botão Códigos'});">Códigos</a></span>
+        <h2 class='text-shadow'>CONTEÚDO</h2>
         <p>Nosso curso "Programação de Algoritmos" foi desenvolvido para quem deseja aprender a lógica por trás da programação de forma prática e eficiente. Ao longo das aulas, você dominará conceitos essenciais e desenvolverá habilidades para resolver problemas com código.</p>
 
         <h3>O que você vai aprender?</h3>
@@ -55,7 +57,7 @@
 
     <!-- Seção do Autor -->
     <section class="autor">
-        <h2>Diogo Arantes</h2>
+        <h2 class='text-shadow'>Diogo Arantes</h2>
         <p>Com 25 anos de experiência na área de programação, Diogo Arantes é engenheiro mecatrônico pela Unicamp e especializou-se em TI na École Centrale de Lyon, França. É programador, professor e apaixonado por ensinar.</p>
         <p>Sua trajetória profissional é marcada pelo desenvolvimento de software em diversas linguagens, incluindo React, Javascript, Python, entre muitas outras. Atualmente se dedica ao ensino de programação e trabalha com Inteligência Artificial.</p>
         <p>Movido pelo desejo de democratizar o aprendizado da programação, Diogo criou este curso com a missão de tornar o conhecimento acessível a todos, oferecendo uma formação de qualidade a um preço justo. Ele se dedica a proporcionar uma experiência de aprendizado intuitiva, envolvente, prática e humanizada.</p>
@@ -63,7 +65,7 @@
 
     <!-- Conteúdo Detalhado -->
     <section class="conteudo-detalhado" id="detalhes">
-        <h1>Conteúdo Detalhado</h1>
+        <h1 class='text-shadow'>Conteúdo Detalhado</h1>
 
         <p class='descricao'>A ideia do curso é passarmos pelo conteúdo básico necessário e, durante este processo, vamos criando um Sistema de Pedidos de um Restaurante.</p>
 
@@ -168,7 +170,7 @@
                 <i class="fas fa-star big-star"></i>
                 <i class="fas fa-star small-star"></i>
             </div>
-            <h1>GARANTIA</h1>
+            <h1 class='text-shadow'>GARANTIA</h1>
             <h2>7 dias para avaliar</h2>
             <p>Seu dinheiro de volta sem perguntas em até 7 dias após a compra.</p>
         </div>
@@ -195,10 +197,10 @@
 
     <!-- Seção Perguntas Frequentes -->
     <section class="faq">
-        <div class="faq-title">Perguntas Frequentes</div>
+        <div class="faq-title text-shadow">Perguntas Frequentes</div>
 
         <div class="faq-item">
-            <button class="faq-question">Para quem é esse curso? <i class="fas fa-arrow-right arrow"></i></button>
+            <button class="faq-question" onclick="gtag('event', 'click_faq', {'event_category': 'FAQ', 'event_label': 'Botão FAQ - Para quem é esse curso'});">Para quem é esse curso? <i class="fas fa-arrow-right arrow"></i></button>
             <div class="faq-answer">
                 <ul>
                     <li>Pessoas sem experiência que querem aprender programação do zero</li>
@@ -212,56 +214,56 @@
         </div>
 
         <div class="faq-item">
-            <button class="faq-question">O curso é indicado para iniciantes? <i class="fas fa-arrow-right arrow"></i></button>
+            <button class="faq-question" onclick="gtag('event', 'click_faq', {'event_category': 'FAQ', 'event_label': 'Botão FAQ - O curso é indicado para iniciantes'});">O curso é indicado para iniciantes? <i class="fas fa-arrow-right arrow"></i></button>
             <div class="faq-answer">
                 <p>Sim! O curso foi desenvolvido para atender tanto iniciantes que nunca programaram antes quanto aqueles que desejam reforçar sua lógica de programação com exercícios práticos.</p>
             </div>
         </div>
 
         <div class="faq-item">
-            <button class="faq-question">Preciso ter conhecimento prévio em programação? <i class="fas fa-arrow-right arrow"></i></button>
+            <button class="faq-question" onclick="gtag('event', 'click_faq', {'event_category': 'FAQ', 'event_label': 'Botão FAQ - Preciso ter conhecimento prévio em programação'});">Preciso ter conhecimento prévio em programação? <i class="fas fa-arrow-right arrow"></i></button>
             <div class="faq-answer">
                 <p>Não! Você aprenderá tudo do zero, começando pelos fundamentos até conceitos mais avançados de algoritmos e estruturas de dados.</p>
             </div>
         </div>
 
-        div class="faq-item">
-            <button class="faq-question">A compra do curso é segura? <i class="fas fa-arrow-right arrow"></i></button>
+        <div class="faq-item">
+            <button class="faq-question" onclick="gtag('event', 'click_faq', {'event_category': 'FAQ', 'event_label': 'Botão FAQ - A compra do curso é segura'});">A compra do curso é segura? <i class="fas fa-arrow-right arrow"></i></button>
             <div class="faq-answer">
                 <p>Sim. A compra é via a plataforma Hotmart, onde está hospedado o conteúdo do curso.</p>
             </div>
         </div>
 
         <div class="faq-item">
-            <button class="faq-question">O curso oferece certificado de conclusão? <i class="fas fa-arrow-right arrow"></i></button>
+            <button class="faq-question" onclick="gtag('event', 'click_faq', {'event_category': 'FAQ', 'event_label': 'Botão FAQ - O curso oferece certificado de conclusão'});">O curso oferece certificado de conclusão? <i class="fas fa-arrow-right arrow"></i></button>
             <div class="faq-answer">
                 <p>Sim! Ao finalizar todas as aulas e atividades propostas, você receberá um <strong>certificado digital</strong> reconhecido, que pode ser utilizado para comprovar seu aprendizado e até mesmo anexado ao seu currículo.</p>
             </div>
         </div>
 
         <div class="faq-item">
-            <button class="faq-question">Posso acessar o curso a qualquer momento? <i class="fas fa-arrow-right arrow"></i></button>
+            <button class="faq-question" onclick="gtag('event', 'click_faq', {'event_category': 'FAQ', 'event_label': 'Botão FAQ - Posso acessar o curso a qualquer momento'});">Posso acessar o curso a qualquer momento? <i class="fas fa-arrow-right arrow"></i></button>
             <div class="faq-answer">
                 <p>Sim! O curso é 100% online e gravado, permitindo que você assista às aulas no seu próprio ritmo, sem prazos ou horários fixos.</p>
             </div>
         </div>
 
         <div class="faq-item">
-            <button class="faq-question">Há exercícios práticos no curso? <i class="fas fa-arrow-right arrow"></i></button>
+            <button class="faq-question" onclick="gtag('event', 'click_faq', {'event_category': 'FAQ', 'event_label': 'Botão FAQ - Há exercícios práticos no curso'});">Há exercícios práticos no curso? <i class="fas fa-arrow-right arrow"></i></button>
             <div class="faq-answer">
                 <p>Sim! Além das aulas teóricas, você encontrará diversos desafios práticos, listas de exercícios e projetos para aplicar os conceitos aprendidos na prática.</p>
             </div>
         </div>
 
         <div class="faq-item">
-            <button class="faq-question">Como funciona o 'Prazo de Garantia'? <i class="fas fa-arrow-right arrow"></i></button>
+            <button class="faq-question" onclick="gtag('event', 'click_faq', {'event_category': 'FAQ', 'event_label': 'Botão FAQ - Como funciona o 'Prazo de Garantia'});">Como funciona o 'Prazo de Garantia'? <i class="fas fa-arrow-right arrow"></i></button>
             <div class="faq-answer">
                 <p>Você tem até 7 dias livres para navegar pelo curso. Se não estiver satisfeito, você será reembolsado.</p>
             </div>
         </div>
 
         <div class="faq-item">
-            <button class="faq-question">Como acessar o produto? <i class="fas fa-arrow-right arrow"></i></button>
+            <button class="faq-question" onclick="gtag('event', 'click_faq', {'event_category': 'FAQ', 'event_label': 'Botão FAQ - Como acessar o produto'});">Como acessar o produto? <i class="fas fa-arrow-right arrow"></i></button>
             <div class="faq-answer">
                 <ol>
                     <li>Faça login na Hotmart clicando em 'Entrar'</li>
@@ -272,7 +274,7 @@
         </div>
 
         <div class="faq-item">
-            <button class="faq-question">Como faço para comprar? <i class="fas fa-arrow-right arrow"></i></button>
+            <button class="faq-question" onclick="gtag('event', 'click_faq', {'event_category': 'FAQ', 'event_label': 'Botão FAQ - Como faço para comprar'});">Como faço para comprar? <i class="fas fa-arrow-right arrow"></i></button>
             <div class="faq-answer">
                 <p>Para comprar este curso é só clicar no botão "Quero Testar o Curso".</p>
             </div>
@@ -282,8 +284,8 @@
 
     <!-- Seção Outros Conteúdos -->
     <section class="outros-conteudos">
-        <h2>Outros Conteúdos</h2>
-        <div class="conteudos-grid">
+        <h2 class='text-shadow'>Outros Conteúdos</h2>
+        <div class="conteudos-grid" onclick="gtag('event', 'click_outros_conteudos', {'event_category': 'Outros Conteúdos', 'event_label': 'Outros conteúdos'});">
             <!-- Artigo 1 -->
             <div class="conteudo-item">
                 <h3>Como Aprender Programação do Zero e Se Tornar um Programador de Sucesso</h3>
@@ -318,7 +320,7 @@
     <section class="conteudos-ocultos">
     <!-- Divs ocultas que contêm os artigos -->
     <div id="conteudo-1" class="conteudo-oculto">
-        <h1>Como Aprender Programação do Zero</h1>
+        <h1 class='text-shadow'>Como Aprender Programação do Zero</h1>
         <p>Programação permite criar sites, apps e automatizar tarefas. Áreas: desenvolvimento, IA, automação e dados.</p>
         <h2>1. O que é?</h2>
         <p>Escrever instruções para o computador executar.</p>
@@ -342,7 +344,7 @@
     </div>
 
     <div id="conteudo-2" class="conteudo-oculto">
-        <h1>Os 5 Erros Comuns ao Aprender Programação e Como Evitá-los</h1>
+        <h1 class='text-shadow'>Os 5 Erros Comuns ao Aprender Programação e Como Evitá-los</h1>
 
         <p>Aprender a programar pode ser um desafio, especialmente para iniciantes. Muitos cometem erros que atrasam o aprendizado e podem levar à frustração. Identificar e corrigir esses erros pode acelerar seu progresso. Veja abaixo os cinco erros mais comuns e como evitá-los.</p>
 
@@ -370,7 +372,7 @@
     </div>
 
     <div id="conteudo-3" class="conteudo-oculto">
-        <h1>Como Escolher a Melhor Linguagem de Programação para Você</h2>
+        <h1 class='text-shadow'>Como Escolher a Melhor Linguagem de Programação para Você</h2>
         <p>A escolha da linguagem certa pode impactar sua jornada na programação. Considere os seguintes fatores:</p>
         <ul>
             <li><strong>Objetivo:</strong> Web (JavaScript), Ciência de Dados (Python), Mobile (Swift, Kotlin), Sistemas (C, C++).</li>
@@ -382,7 +384,7 @@
     </div>
 
     <div id="conteudo-4" class="conteudo-oculto">
-        <h1>A Importância da Lógica de Programação e Como Dominá-la</h2>
+        <h1 class='text-shadow'>A Importância da Lógica de Programação e Como Dominá-la</h2>
         <p>Mais do que decorar comandos, dominar lógica de programação é essencial para resolver problemas com eficiência. Aqui estão algumas dicas para melhorar sua lógica:</p>
         <ul>
             <li><strong>Comece com pseudocódigos e fluxogramas:</strong> Organizar ideias antes de codificar ajuda na clareza.</li>
@@ -401,14 +403,14 @@
         </div>
     </div>
 
-    <!-- Pricing Codes -->
-    <section class="codes">
+    <!-- Codes -->
+    <section id="codes" class="codes">
         <div class="content">
             <div class="terminal-title">
                 <div class="terminal-icon">
                     <i class="fas fa-terminal"></i>
                 </div>
-                <span class='title'>&nbsp;Códigos interessantes</span>
+                <span class='title text-shadow'>&nbsp;Códigos interessantes</span>
             </div>
             <!-- Code boxes will be dynamically inserted here -->
         </div>
@@ -418,201 +420,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
 
+    <script src="scripts.js"></script>
 </body>
 </html>
-
-
-
-<script>
-document.querySelectorAll(".faq-question").forEach(button => {
-    button.addEventListener("click", () => {
-        const answer = button.nextElementSibling;
-        const icon = button.querySelector(".arrow");
-        const isActive = button.classList.contains("active");
-
-        // Fecha todas as respostas antes de abrir a clicada
-        document.querySelectorAll(".faq-answer").forEach(ans => {
-            ans.style.maxHeight = "0";
-            ans.style.padding = "0 15px";
-        });
-
-        document.querySelectorAll(".faq-question").forEach(btn => btn.classList.remove("active"));
-        document.querySelectorAll(".faq-question .arrow").forEach(arrow => arrow.style.transform = "rotate(0deg)");
-
-        if (!isActive) {
-            answer.style.display = "block";  // Garante que está visível antes de calcular a altura
-            const realHeight = answer.scrollHeight+15 + "px"; // Obtém a altura real do conteúdo
-            answer.style.maxHeight = realHeight; // Aplica a altura dinamicamente
-            answer.style.padding = "15px"; // Adiciona espaço interno
-            button.classList.add("active");
-            icon.style.transform = "rotate(90deg)";
-        } else {
-            answer.style.maxHeight = "0";
-            answer.style.padding = "0 15px";
-            answer.style.display = "none"; // Esconde após a animação
-        }
-    });
-});
-
-// Function to parse the snippets from the file
-function parseSnippets(data) {
-    const snippets = [];
-    const lines = data.split('\n');
-    let currentSnippet = null;
-
-    lines.forEach(line => {
-        if (line.startsWith('[') && line.endsWith(']')) {
-            // New snippet section
-            if (currentSnippet) {
-                snippets.push(currentSnippet); // Save the previous snippet
-            }
-            currentSnippet = {
-                title: line.slice(1, -1), // Remove brackets
-                code: ''
-            };
-        } else if (currentSnippet) {
-            // Add code to the current snippet
-            currentSnippet.code += line + '\n';
-        }
-    });
-
-    // Add the last snippet
-    if (currentSnippet) {
-        snippets.push(currentSnippet);
-    }
-
-    console.log('All snippets:', snippets); // Debugging
-    return snippets;
-}
-
-// Function to create code boxes dynamically
-function createCodeBoxes(snippets) {
-    const codesSection = document.querySelector('.codes .content');
-
-    snippets.forEach(snippet => {
-        // Create the code box
-        const codeBox = document.createElement('div');
-        codeBox.className = 'code-box';
-
-        // Create the snippet title
-        const snippetTitle = document.createElement('p');
-        snippetTitle.className = 'snippet';
-        snippetTitle.innerHTML = `
-            <i class="fas fa-arrow-right arrow"></i>
-            <span>${snippet.title}</span>
-        `;
-
-        // Create the terminal box (starts collapsed)
-        const terminal = document.createElement('div');
-        terminal.className = 'terminal';
-        terminal.style.maxHeight = "0"; // Starts closed
-
-        // Create the code block
-        const codeBlock = document.createElement('pre');
-        const codeElement = document.createElement('code');
-
-        // Detect language (default to Python)
-        let languageClass = 'language-python';
-        if (snippet.title.toLowerCase().includes('javascript')) {
-            languageClass = 'language-javascript';
-        }
-
-        codeElement.className = languageClass;
-        codeElement.textContent = snippet.code.trim(); // Preserve line breaks
-        codeBlock.appendChild(codeElement);
-        terminal.appendChild(codeBlock);
-
-        // Apply Prism.js syntax highlighting
-        Prism.highlightElement(codeElement);
-
-        // Create the copy button
-        const copyButton = document.createElement('button');
-        copyButton.className = 'copy-btn';
-        copyButton.innerText = 'Copiar';
-        copyButton.onclick = () => copyCode(codeElement);
-        terminal.appendChild(copyButton);
-
-        // Add click event to open/close snippet
-        snippetTitle.addEventListener('click', () => {
-            // Close any currently open terminal before opening the new one
-            document.querySelectorAll('.terminal.open').forEach(openTerminal => {
-                if (openTerminal !== terminal) {
-                    openTerminal.classList.remove('open');
-                    openTerminal.style.maxHeight = "0";
-                }
-            });
-
-            // Toggle the clicked snippet
-            const isOpen = terminal.classList.contains('open');
-            if (isOpen) {
-                terminal.classList.remove('open');
-                terminal.style.maxHeight = "0";
-            } else {
-                terminal.classList.add('open');
-                terminal.style.maxHeight = terminal.scrollHeight + "px"; // Animate opening
-            }
-        });
-
-        // Append elements to the code box
-        codeBox.appendChild(snippetTitle);
-        codeBox.appendChild(terminal);
-
-        // Append the code box to the section
-        codesSection.appendChild(codeBox);
-    });
-}
-
-
-// Function to copy code to clipboard
-function copyCode(codeElement) {
-    const code = codeElement.innerText;
-    navigator.clipboard.writeText(code)
-        .then(() => console.log('Code copied to clipboard!'))
-        .catch(() => console.log('Failed to copy code.'));
-}
-
-    document.addEventListener("DOMContentLoaded", function () {
-        fetch('codes.txt')
-            .then(response => response.text())
-            .then(data => {
-                console.log('Fetched data:', data); // Debugging
-                const snippets = parseSnippets(data);
-                console.log('Parsed snippets:', snippets); // Debugging
-                createCodeBoxes(snippets);
-            })
-            .catch(error => console.error('Error loading codes:', error));
-
-            document.querySelectorAll('.mostrar-conteudo').forEach(link => {
-            link.addEventListener('click', function (e) {
-                e.preventDefault();  // Evita o comportamento padrão do link
-
-                const targetId = this.getAttribute('data-target');  // Obtém o ID do artigo
-                const conteudoContainer = document.getElementById('conteudo-container');  // Modal
-                const conteudoDinamico = document.getElementById('conteudo-dinamico');  // Onde o artigo será carregado
-                const conteudoSelecionado = document.getElementById(targetId); // Obtém a div do artigo
-
-                if (conteudoSelecionado) {
-                    // Insere o conteúdo no modal
-                    conteudoDinamico.innerHTML = conteudoSelecionado.innerHTML;
-
-                    // Exibe o modal e bloqueia rolagem da página
-                    document.body.classList.add('modal-aberto');
-                    conteudoContainer.classList.add('ativo');
-                } else {
-                    console.error("Erro: Conteúdo não encontrado para o ID:", targetId);
-                }
-            });
-        });
-
-    // Evento para fechar o modal
-    document.querySelector('.fechar-conteudo').addEventListener('click', function () {
-        document.getElementById('conteudo-container').classList.remove('ativo');
-        document.body.classList.remove('modal-aberto'); // Habilita a rolagem da página novamente
-    });
-});
-
-
-</script>
 
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-PJXE6DVW0P"></script>

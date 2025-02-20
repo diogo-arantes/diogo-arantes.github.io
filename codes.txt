@@ -295,3 +295,187 @@ while rodando:
 
     pygame.display.flip()
 pygame.quit()
+
+[jogo_cobrinha.py]
+import pygame, random
+
+# Initialize pygame
+pygame.init()
+
+# Game settings
+TAMANHO = 900
+TAMANHO_CELULA = 20
+tela = pygame.display.set_mode((TAMANHO, TAMANHO))
+pygame.display.set_caption("Jogo da Cobrinha")
+clock = pygame.time.Clock()
+
+# Colors
+cor_fundo = "#000000"
+cor_snake = "#32FF32"
+cor_food = ["#FF3232", "#FFAA32", "#32AAFF", "#AA32FF", "#32FFAA"]
+cor_texto = (255, 255, 255)  # White
+
+# Initialize snake and food
+snake = [[300, 300]]
+direcao_atual = (TAMANHO_CELULA, 0)  # Starts moving to the right
+foods = [[random.randint(0, (TAMANHO // TAMANHO_CELULA) - 1) * TAMANHO_CELULA,
+          random.randint(0, (TAMANHO // TAMANHO_CELULA) - 1) * TAMANHO_CELULA] for _ in range(5)]
+
+# Score
+score = 0
+fonte = pygame.font.Font(None, 36)  # Default Pygame font
+fonte_gameover = pygame.font.Font(None, 100)  # Larger font for "Game Over"
+
+running = True
+game_over = False
+
+while running:
+    tela.fill(cor_fundo)
+
+    # Event handling
+    for e in pygame.event.get():
+        if e.type == pygame.QUIT:
+            running = False
+        elif e.type == pygame.KEYDOWN:
+            if not game_over:  # Only change direction if game is still running
+                if e.key == pygame.K_UP and direcao_atual != (0, TAMANHO_CELULA):
+                    direcao_atual = (0, -TAMANHO_CELULA)
+                elif e.key == pygame.K_DOWN and direcao_atual != (0, -TAMANHO_CELULA):
+                    direcao_atual = (0, TAMANHO_CELULA)
+                elif e.key == pygame.K_LEFT and direcao_atual != (TAMANHO_CELULA, 0):
+                    direcao_atual = (-TAMANHO_CELULA, 0)
+                elif e.key == pygame.K_RIGHT and direcao_atual != (-TAMANHO_CELULA, 0):
+                    direcao_atual = (TAMANHO_CELULA, 0)
+            else:
+                running = False  # Exit on key press after game over
+
+    if not game_over:
+        # Move the snake
+        new_head = [snake[0][0] + direcao_atual[0], snake[0][1] + direcao_atual[1]]
+
+        # Check collision with itself or wall
+        if new_head in snake or not (0 <= new_head[0] < TAMANHO and 0 <= new_head[1] < TAMANHO):
+            game_over = True
+
+        if not game_over:
+            snake.insert(0, new_head)
+
+            # Check if food is eaten
+            if new_head in foods:
+                foods.remove(new_head)
+                foods.append([random.randint(0, (TAMANHO // TAMANHO_CELULA) - 1) * TAMANHO_CELULA,
+                              random.randint(0, (TAMANHO // TAMANHO_CELULA) - 1) * TAMANHO_CELULA])
+                score += 1  # Increase score
+            else:
+                snake.pop()
+
+    # Draw snake
+    for s in snake:
+        pygame.draw.rect(tela, cor_snake, (*s, TAMANHO_CELULA, TAMANHO_CELULA))
+
+    # Draw food
+    for i, f in enumerate(foods):
+        pygame.draw.rect(tela, pygame.Color(cor_food[i % len(cor_food)]), (*f, TAMANHO_CELULA, TAMANHO_CELULA))
+
+    # Draw score
+    texto_score = fonte.render(f"Comidas: {score}", True, cor_texto)
+    tela.blit(texto_score, (10, 10))  # Position top left
+
+    # Show "Game Over" message
+    if game_over:
+        overlay = pygame.Surface((TAMANHO, TAMANHO))  # Create a transparent layer
+        overlay.set_alpha(150)  # Set transparency (0-255)
+        overlay.fill((0, 0, 0))  # Black overlay
+        tela.blit(overlay, (0, 0))  # Draw the overlay
+
+        texto_gameover = fonte_gameover.render("GAME OVER", True, (255, 0, 0))  # Red Game Over
+        rect = texto_gameover.get_rect(center=(TAMANHO // 2, TAMANHO // 2))  # Centered
+        tela.blit(texto_gameover, rect)
+
+        texto_hint = fonte.render("Pressione qualquer tecla para sair", True, cor_texto)
+        rect_hint = texto_hint.get_rect(center=(TAMANHO // 2, TAMANHO // 2 + 80))
+        tela.blit(texto_hint, rect_hint)
+
+    pygame.display.flip()
+    clock.tick(10)  # Control speed
+
+pygame.quit()
+
+
+[relogio_analogico.py]
+import pygame
+import math
+import datetime
+
+# Inicializa o Pygame
+pygame.init()
+
+# Configurações do relógio
+LARGURA, ALTURA = 500, 500
+CENTRO = (LARGURA // 2, ALTURA // 2)
+RAIO = 200  # Raio do relógio
+COR_FUNDO = (20, 20, 30)  # Azul escuro elegante
+COR_BORDA = (240, 240, 240)  # Borda branca
+COR_NUMEROS = (200, 200, 200)  # Cinza claro
+COR_PONTEIRO_H = (255, 100, 100)  # Vermelho suave
+COR_PONTEIRO_M = (100, 255, 100)  # Verde claro
+COR_PONTEIRO_S = (100, 100, 255)  # Azul claro
+
+# Criação da tela
+tela = pygame.display.set_mode((LARGURA, ALTURA))
+pygame.display.set_caption("Relógio Analógico Minimalista")
+clock = pygame.time.Clock()
+
+# Função para desenhar ponteiros
+def desenha_ponteiro(tela, angulo, comprimento, cor, largura=4):
+    """Desenha um ponteiro do relógio."""
+    angulo_rad = math.radians(angulo - 90)  # Ajusta o ângulo para começar do topo
+    ponta_x = CENTRO[0] + comprimento * math.cos(angulo_rad)
+    ponta_y = CENTRO[1] + comprimento * math.sin(angulo_rad)
+    pygame.draw.line(tela, cor, CENTRO, (ponta_x, ponta_y), largura)
+
+# Função principal do jogo
+rodando = True
+while rodando:
+    tela.fill(COR_FUNDO)
+
+    # Eventos do Pygame
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            rodando = False
+
+    # Obtém o horário atual
+    agora = datetime.datetime.now()
+    segundos = agora.second
+    minutos = agora.minute + segundos / 60  # Minutos suaves
+    horas = agora.hour % 12 + minutos / 60  # Horas suaves
+
+    # Converte para ângulos (360° para 60 unidades)
+    ang_h = horas * 30  # 360°/12h = 30° por hora
+    ang_m = minutos * 6  # 360°/60min = 6° por minuto
+    ang_s = segundos * 6  # 360°/60s = 6° por segundo
+
+    # Desenha o círculo do relógio
+    pygame.draw.circle(tela, COR_BORDA, CENTRO, RAIO, 8)  # Contorno do relógio
+
+    # Desenha os números do relógio
+    for i in range(1, 13):
+        ang_num = math.radians(i * 30 - 90)
+        num_x = CENTRO[0] + (RAIO - 30) * math.cos(ang_num)
+        num_y = CENTRO[1] + (RAIO - 30) * math.sin(ang_num)
+        fonte = pygame.font.Font(None, 40)
+        texto = fonte.render(str(i), True, COR_NUMEROS)
+        tela.blit(texto, (num_x - 10, num_y - 15))
+
+    # Desenha os ponteiros
+    desenha_ponteiro(tela, ang_h, RAIO * 0.5, COR_PONTEIRO_H, 8)  # Horas
+    desenha_ponteiro(tela, ang_m, RAIO * 0.7, COR_PONTEIRO_M, 6)  # Minutos
+    desenha_ponteiro(tela, ang_s, RAIO * 0.9, COR_PONTEIRO_S, 2)  # Segundos
+
+    # Desenha o centro do relógio
+    pygame.draw.circle(tela, (255, 255, 255), CENTRO, 8)  # Pequeno círculo no centro
+
+    pygame.display.flip()
+    clock.tick(30)  # Suaviza a animação
+
+pygame.quit()
