@@ -1,3 +1,339 @@
+[jogo_memoria.html]
+<!DOCTYPE html>
+<html>
+<!-- Previous styles remain the same -->
+<head>
+<style>
+    /* All previous styles remain exactly the same */
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 2rem;
+      border-radius: 1rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .stats {
+      display: flex;
+      gap: 2rem;
+      font-size: 1.25rem;
+    }
+
+    .stat {
+      background: #f3f4f6;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+    }
+
+    .game-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .card {
+      aspect-ratio: 1;
+      font-size: 2.5rem;
+      background: #fff;
+      border: 2px solid #e5e7eb;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.3s ease;
+      transform-style: preserve-3d;
+    }
+
+    .card.flipped {
+      transform: rotateY(180deg);
+    }
+
+    .card:hover {
+      border-color: #6366f1;
+    }
+
+    .card-front, .card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card-back {
+      background: #6366f1;
+      transform: rotateY(180deg);
+      border-radius: 0.3rem;
+    }
+
+    button {
+      background: #6366f1;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background: #4f46e5;
+    }
+
+    .game-over {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 2rem;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .game-over.show {
+      display: flex;
+    }
+
+    .preview-message {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 1rem 2rem;
+      border-radius: 0.5rem;
+      font-size: 1.5rem;
+      display: none;
+    }
+
+    .preview-message.show {
+      display: block;
+    }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="stats">
+        <div class="stat">Pontos: <span id="score">0</span></div>
+        <div class="stat">Tempo: <span id="timer">60</span>s</div>
+      </div>
+      <button id="restart">Reiniciar Jogo</button>
+    </div>
+    <div class="game-grid" id="gameGrid"></div>
+  </div>
+
+  <div class="game-over" id="gameOver">
+    <h2>Fim de Jogo!</h2>
+    <p>Pontuação Final: <span id="finalScore">0</span></p>
+    <button onclick="restartGame()">Jogar Novamente</button>
+  </div>
+
+  <div class="preview-message" id="previewMessage">
+    Memorize as cartas!
+  </div>
+
+  <script>
+    const emojis = [
+      // Animais
+      '🦊', '🐼', '🦁', '🐯', '🐨', '🐸', '🐷', '🦒', '🦘', '🦥',
+      // Comidas
+      '🍕', '🍔', '🌮', '🍣', '🍜', '🥐', '🥨', '🥞', '🧇', '🥪',
+      // Esportes
+      '⚽️', '🏀', '🎾', '🏈', '⚾️', '🏸', '🏓', '🎱', '🥊', '⛸️',
+      // Flores
+      '🌸', '🌺', '🌹', '🌷', '🌻', '🌼', '💐', '🌿', '🍀', '🌵',
+      // Transportes
+      '🚗', '✈️', '🚂', '🚢', '🚲', '🛵', '🚁', '🚀', '🛸', '🚤',
+      // Clima
+      '☀️', '🌙', '⭐️', '☁️', '🌈', '❄️', '⛈️', '🌪️', '🌊', '⚡️',
+      // Frutas
+      '🍎', '🍌', '🍇', '🍊', '🍓', '🥝', '🍍', '🥭', '🍐', '🫐',
+      // Profissões
+      '👨‍⚕️', '👩‍🏫', '👨‍🍳', '👩‍🚀', '👨‍🌾', '👩‍🏭', '👨‍💻', '👩‍🔬', '👨‍🎨', '👩‍✈️',
+      // Instrumentos
+      '🎸', '🎹', '🎺', '🎻', '🥁', '🪘', '🎷', '🪗', '📯', '🎼',
+      // Animais Marinhos
+      '🐋', '🐬', '🦈', '🐟', '🐠', '🦀', '🦞', '🐙', '🦑', '🐡',
+      // Doces
+      '🍦', '🍰', '🧁', '🍪', '🍫', '🍬', '🍭', '🍮', '🍯', '🍩',
+      // Expressões
+      '😊', '🥰', '😎', '🤓', '🤯', '🥳', '😴', '🤠', '😇', '🤪'
+    ];
+
+    let flippedCards = [];
+    let matchedPairs = 0;
+    let score = 0;
+    let timeLeft = 60;
+    let gameTimer;
+    let isGameOver = false;
+    let canFlip = false;
+
+    function shuffleArray(array) {
+      const newArray = [...array];
+      for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+      }
+      return newArray;
+    }
+
+    function createGame() {
+      const gameGrid = document.getElementById('gameGrid');
+      const selectedEmojis = shuffleArray(emojis).slice(0, 8);
+      const gameEmojis = shuffleArray([...selectedEmojis, ...selectedEmojis]);
+
+      gameGrid.innerHTML = '';
+      gameEmojis.forEach((emoji, index) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div class="card-front"></div>
+          <div class="card-back">${emoji}</div>
+        `;
+        card.dataset.emoji = emoji;
+        card.dataset.index = index;
+        card.addEventListener('click', handleCardClick);
+        gameGrid.appendChild(card);
+      });
+
+      showPreview();
+    }
+
+    function showPreview() {
+      const previewMessage = document.getElementById('previewMessage');
+      previewMessage.classList.add('show');
+
+      const cards = document.querySelectorAll('.card');
+      cards.forEach(card => card.classList.add('flipped'));
+
+      setTimeout(() => {
+        cards.forEach(card => card.classList.remove('flipped'));
+        previewMessage.classList.remove('show');
+        canFlip = true;
+      }, 3000);
+    }
+
+    function handleCardClick(e) {
+      if (isGameOver || !canFlip) return;
+
+      const card = e.currentTarget;
+      if (
+        flippedCards.length === 2 ||
+        flippedCards.includes(card) ||
+        card.classList.contains('matched')
+      ) {
+        return;
+      }
+
+      card.classList.add('flipped');
+      flippedCards.push(card);
+
+      if (flippedCards.length === 2) {
+        checkMatch();
+      }
+    }
+
+    function checkMatch() {
+      const [card1, card2] = flippedCards;
+      const match = card1.dataset.emoji === card2.dataset.emoji;
+
+      if (match) {
+        card1.classList.add('matched');
+        card2.classList.add('matched');
+        matchedPairs++;
+        score += 10;
+        document.getElementById('score').textContent = score;
+
+        if (matchedPairs === 8) {
+          endGame(true);
+        }
+      } else {
+        setTimeout(() => {
+          card1.classList.remove('flipped');
+          card2.classList.remove('flipped');
+        }, 1000);
+        score = Math.max(0, score - 1);
+        document.getElementById('score').textContent = score;
+      }
+
+      setTimeout(() => {
+        flippedCards = [];
+      }, 1000);
+    }
+
+    function startTimer() {
+      gameTimer = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timer').textContent = timeLeft;
+
+        if (timeLeft <= 0) {
+          endGame(false);
+        }
+      }, 1000);
+    }
+
+    function endGame(isWin) {
+      isGameOver = true;
+      clearInterval(gameTimer);
+      document.getElementById('finalScore').textContent = score;
+      document.getElementById('gameOver').classList.add('show');
+    }
+
+    function restartGame() {
+      flippedCards = [];
+      matchedPairs = 0;
+      score = 0;
+      timeLeft = 60;
+      isGameOver = false;
+      canFlip = false;
+
+      document.getElementById('score').textContent = score;
+      document.getElementById('timer').textContent = timeLeft;
+      document.getElementById('gameOver').classList.remove('show');
+
+      clearInterval(gameTimer);
+      createGame();
+      startTimer();
+    }
+
+    document.getElementById('restart').addEventListener('click', restartGame);
+
+    // Initialize the game
+    createGame();
+    startTimer();
+  </script>
+</body>
+</html>
+
 [gravidade_planetas.py]
 import pygame
 import random
