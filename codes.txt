@@ -756,60 +756,58 @@ while True:
 
 [relogio.py]
 import os
-
 import time
+from typing import Dict, List
+
+CURSOR_UP = '\033[A'
 digits = {
-    '0': ['  ***  ', ' *   * ', '*     *', '*     *', ' *   * ', '  ***  '],
-    '1': ['   *   ', '  **   ', '   *   ', '   *   ', '   *   ', '  ***  '],
-    '2': [' ***** ', '*     *', '     * ', '   *   ', ' *     ', '*******'],
-    '3': [' ***** ', '      *', '  **** ', '      *', '      *', ' ***** '],
-    '4': ['*     *', '*     *', ' ******', '      *', '      *', '      *'],
-    '5': ['*******', '*      ', '****** ', '      *', '      *', '****** '],
-    '6': [' ***** ', '*      ', '* **** ', '*     *', '*     *', ' ***** '],
-    '7': ['*******', '     * ', '    *  ', '   *   ', '  *    ', ' *     '],
-    '8': [' ***** ', '*     *', ' ***** ', '*     *', '*     *', ' ***** '],
-    '9': [' ***** ', '*     *', '* **** ', '      *', '      *', ' ***** '],
-    ':': ['       ', '   *   ', '       ', '   *   ', '       ', '       ']
+    '0': '  oooo   o    o o      o o      o  o    o   oooo  ',
+    '1': '   o    oo     o     o     o     o     ooo  ',
+    '2': ' oooooo o      o      o    o    o  o     ooooooo ',
+    '3': ' oooooo        o   oooo        o        o  oooooo ',
+    '4': 'o      o o      o  ooooooo        o        o        o',
+    '5': 'ooooooo o        ooooooo        o        o ooooooo ',
+    '6': ' oooooo o        o ooooo o      o o      o  oooooo ',
+    '7': 'ooooooo       o      o     o      o     o      o  ',
+    '8': ' oooooo o      o  oooooo o      o o      o  oooooo ',
+    '9': ' oooooo o      o  ooooooo        o        o  oooooo ',
+    ':': '       o         o         '
 }
+
+def get_time_rows(time_str: str) -> List[str]:
+    """Generate the rows for the current time."""
+    rows = []
+    for row in range(6):
+        current_row = '  '
+        for char in time_str:
+            current_row += digits[char][row] + '  '  # Increase spacing
+        rows.append(current_row)
+    return rows
+
+# Initial setup
+prev_time = ''
+first_run = True
+
 while True:
     current_time = time.strftime("%H:%M:%S")
-    for row in range(6):
-        for char in current_time:
-            print(digits[char][row], end=' ')
-        print()
-    print()
-    time.sleep(1)
-    os.system('clear')
-    print()
 
-[particulas.py]
-import pygame, random, math
+    # Only update if time has changed
+    if current_time != prev_time:
+        time_rows = get_time_rows(current_time)
 
-pygame.init()
-tela = pygame.display.set_mode((800, 600))
-cores = ["#FF3232", "#32FF32", "#3232FF", "#FFFF32", "#FF32FF"]
-particulas = []
+        # Move cursor up to overwrite previous output
+        if not first_run:
+            for _ in range(6):
+                print(CURSOR_UP, end='')
 
-rodando = True
-while rodando:
-    tela.fill("#000000")
-    for e in pygame.event.get():
-        if e.type == pygame.QUIT:
-            rodando = False
+        # Print new time
+        for row in time_rows:
+            print(row)
 
-    x, y = pygame.mouse.get_pos()
-    particulas.append([x, y, pygame.Color(random.choice(cores)), random.uniform(3, 6), random.uniform(0, 2*math.pi)])
+        prev_time = current_time
+        first_run = False
 
-    for p in particulas[:]:
-        p[0] += math.cos(p[4]) * 3
-        p[1] += math.sin(p[4]) * 3
-        p[3] *= 0.97
-        pygame.draw.circle(tela, p[2], (int(p[0]), int(p[1])), int(p[3]))
-        if p[3] < 1:
-            particulas.remove(p)
-
-    pygame.display.flip()
-pygame.quit()
+    time.sleep(0.1)
 
 [relogio_analogico.py]
 import pygame
