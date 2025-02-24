@@ -247,8 +247,8 @@ VANTA.HALO({
     gyroControls: false,
     minHeight: 200.00,
     minWidth: 200.00,
-    baseColor: 0x3c3c3c,
-    backgroundColor: 0x000000,
-    amplitudeFactor: 0.20,
-    xOffset: 0.41
+    baseColor: 0x3e0059,
+    amplitudeFactor: 0.00,
+    xOffset: 0.35,
+    size: 1.90
 })
