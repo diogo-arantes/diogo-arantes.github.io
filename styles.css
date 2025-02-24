@@ -538,6 +538,11 @@ code[class*="language-"] {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
+.conteudo-item p {
+    color: #aaa;
+    font-weight: 500;
+  }
+
 .conteudo-item a {
   color: #1DB954;
   font-weight: bold;
@@ -617,7 +622,9 @@ body.modal-aberto {
     margin-bottom: 15px;
 }
 
-.conteudo-completo p {
+.conteudo-completo p, li {
+    color: #ccc;
+    font-weight: 500;
     font-size: 18px;
     line-height: 1.6;
 }
