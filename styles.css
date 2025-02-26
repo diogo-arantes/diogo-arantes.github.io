@@ -597,9 +597,12 @@ code[class*="language-"] {
 
 /* Botão de fechar */
 .fechar-conteudo {
-    position: absolute;
-    top: 15px;
-    right: 20px;
+    position: fixed;
+    font-weight: bold;
+    font-size: 25px;
+    z-index: 9999;
+    top: 30px;
+    right: 30px;
     font-size: 24px;
     border: none;
     background: none;
@@ -608,7 +611,7 @@ code[class*="language-"] {
 }
 
 .fechar-conteudo:hover {
-    color: #f44336;
+    color: #fcd913;
 }
 
 /* Bloqueia a rolagem da página ao abrir o modal */
@@ -703,10 +706,6 @@ body.modal-aberto {
       width: 60%;
   }
 
-  header .codes-button {
-    /* top: 340px; */
-  }
-
   .conteudo, .cta, .autor, .conteudo-detalhado, .faq {
       padding: 40px 80px 40px 80px;
   }
@@ -791,6 +790,49 @@ body.modal-aberto {
       margin: 5px -60px;
   }
 }
+
+
+
+body::-webkit-scrollbar {
+    width: 6px;
+}
+
+body::-webkit-scrollbar-track {
+    background: #2c2c2c;
+    border-radius: 10px;
+}
+
+body::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+body::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+
+
+.conteudo-completo::-webkit-scrollbar {
+    width: 6px;
+}
+
+.conteudo-completo::-webkit-scrollbar-track {
+    background: #2c2c2c;
+    border-radius: 10px;
+}
+
+.conteudo-completo::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.conteudo-completo::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+
+
 
 .codes .terminal::-webkit-scrollbar {
   width: 6px;

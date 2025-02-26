@@ -4,9 +4,10 @@ document.querySelectorAll(".faq-question").forEach(button => {
         const icon = button.querySelector(".arrow");
         const isActive = button.classList.contains("active");
 
-        // Fecha todas as respostas antes de abrir a clicada
+        // Close all open answers
         document.querySelectorAll(".faq-answer").forEach(ans => {
             ans.style.maxHeight = "0";
+            ans.style.overflow = "hidden";
             ans.style.padding = "0 15px";
         });
 
@@ -14,16 +15,16 @@ document.querySelectorAll(".faq-question").forEach(button => {
         document.querySelectorAll(".faq-question .arrow").forEach(arrow => arrow.style.transform = "rotate(0deg)");
 
         if (!isActive) {
-            answer.style.display = "block";  // Garante que está visível antes de calcular a altura
-            const realHeight = answer.scrollHeight+15 + "px"; // Obtém a altura real do conteúdo
-            answer.style.maxHeight = realHeight; // Aplica a altura dinamicamente
-            answer.style.padding = "15px"; // Adiciona espaço interno
+            answer.style.display = "block"; // Ensure it's visible before measuring height
+            const realHeight = answer.scrollHeight + 15 + "px";
+            answer.style.maxHeight = realHeight;
+            answer.style.padding = "15px";
             button.classList.add("active");
             icon.style.transform = "rotate(90deg)";
         } else {
             answer.style.maxHeight = "0";
             answer.style.padding = "0 15px";
-            answer.style.display = "none"; // Esconde após a animação
+            setTimeout(() => { answer.style.display = "none"; }, 400); // Hide after transition
         }
     });
 });
@@ -168,43 +169,55 @@ function copyCode(codeElement) {
         .catch(() => console.log('Failed to copy code.'));
 }
 
-    document.addEventListener("DOMContentLoaded", function () {
-        fetch('codes.txt')
-            .then(response => response.text())
-            .then(data => {
-                console.log('Fetched data:', data); // Debugging
-                const snippets = parseSnippets(data);
-                console.log('Parsed snippets:', snippets); // Debugging
-                createCodeBoxes(snippets);
-            })
-            .catch(error => console.error('Error loading codes:', error));
+document.addEventListener("DOMContentLoaded", function () {
+    fetch('codes.txt')
+        .then(response => response.text())
+        .then(data => {
+            console.log('Fetched data:', data); // Debugging
+            const snippets = parseSnippets(data);
+            console.log('Parsed snippets:', snippets); // Debugging
+            createCodeBoxes(snippets);
+        })
+        .catch(error => console.error('Error loading codes:', error));
 
-            document.querySelectorAll('.mostrar-conteudo').forEach(link => {
-            link.addEventListener('click', function (e) {
-                e.preventDefault();  // Evita o comportamento padrão do link
+    let lastScrollTop = 0;
 
-                const targetId = this.getAttribute('data-target');  // Obtém o ID do artigo
-                const conteudoContainer = document.getElementById('conteudo-container');  // Modal
-                const conteudoDinamico = document.getElementById('conteudo-dinamico');  // Onde o artigo será carregado
-                const conteudoSelecionado = document.getElementById(targetId); // Obtém a div do artigo
+    document.querySelectorAll('.mostrar-conteudo').forEach(link => {
+        link.addEventListener('click', function (e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('data-target');
+            const conteudoContainer = document.getElementById('conteudo-container');
+            const conteudoDinamico = document.getElementById('conteudo-dinamico');
+            const conteudoSelecionado = document.getElementById(targetId);
 
-                if (conteudoSelecionado) {
-                    // Insere o conteúdo no modal
-                    conteudoDinamico.innerHTML = conteudoSelecionado.innerHTML;
+            if (conteudoSelecionado) {
+                conteudoDinamico.innerHTML = conteudoSelecionado.innerHTML;
+                conteudoContainer.classList.add('ativo');
 
-                    // Exibe o modal e bloqueia rolagem da página
-                    document.body.classList.add('modal-aberto');
-                    conteudoContainer.classList.add('ativo');
-                } else {
-                    console.error("Erro: Conteúdo não encontrado para o ID:", targetId);
-                }
-            });
+                // Wait for rendering to apply the scroll effect
+                setTimeout(() => {
+                    conteudoContainer.scrollTop = 0;
+                    conteudoDinamico.scrollTop = 0;
+                }, 350);
+
+                lastScrollTop = window.scrollY; // Save scroll position
+                document.body.style.position = 'fixed';
+                document.body.style.top = `-${lastScrollTop}px`;
+                document.body.classList.add('modal-aberto');
+            } else {
+                console.error("Erro: Conteúdo não encontrado para o ID:", targetId);
+            }
         });
+    });
 
-    // Evento para fechar o modal
     document.querySelector('.fechar-conteudo').addEventListener('click', function () {
         document.getElementById('conteudo-container').classList.remove('ativo');
-        document.body.classList.remove('modal-aberto'); // Habilita a rolagem da página novamente
+        document.body.classList.remove('modal-aberto');
+
+        // Restore scroll position after closing modal
+        document.body.style.position = '';
+        document.body.style.top = '';
+        window.scrollTo(0, lastScrollTop);
     });
 });
 
