@@ -234,7 +234,8 @@ VANTA.DOTS({
     color2: 0x155fb3,
     showLines: false,
     size: 2,
-    backgroundAlpha: 0.5
+    backgroundAlpha: 0.5,
+    spacing: 16.00,
 });
 
 VANTA.DOTS({
@@ -250,7 +251,8 @@ VANTA.DOTS({
     color2: 0x155fb3,
     showLines: false,
     size: 2,
-    backgroundAlpha: 0.5
+    backgroundAlpha: 0.5,
+    spacing: 16.00,
 });
 
 VANTA.HALO({
@@ -260,8 +262,7 @@ VANTA.HALO({
     gyroControls: false,
     minHeight: 200.00,
     minWidth: 200.00,
-    baseColor: 0x3e0059,
-    amplitudeFactor: 0.00,
+    backgroundColor: 0x0,
     xOffset: 0.35,
-    size: 1.90
+    size: 1.80
 })
