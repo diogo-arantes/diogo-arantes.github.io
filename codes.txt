@@ -104,16 +104,23 @@
             font-family: 'Courier New', monospace;">
             Inventory:
         </div>
+        <div id="lives" style="
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 1.5em;
+            color: white;
+            z-index: 5;">
+            ❤️ Lives: 3
+        </div>
 
         <div id="start-screen">
-            <h1>CURSED VOYAGE</h1>
-            <p>Navigate your ship through the haunted passage</p>
-            <p>Use UP and DOWN arrow keys or W and S to move</p>
-            <button id="start-button">BEGIN JOURNEY</button>
+            <h1>VIAGEM AMALDIÇOADA</h1>
+            <button id="start-button">PREPARE-SE PARA PERDER</button>
         </div>
 
         <div id="game-over-screen" style="display: none;">
-            <h1>JOURNEY ENDED</h1>
+            <h1>GAME OVER</h1>
             <div id="game-over-score">Score: 0</div>
             <button id="restart-button">TRY AGAIN</button>
         </div>
@@ -140,7 +147,7 @@
         let score = 0;
         let shipY = canvas.height / 2;
         let shipVelocity = 0;
-        let obstacleSpeed = 1;
+        let obstacleSpeed = 1.5;
         let obstacles = [];
         let groundLevel = canvas.height * 0.8;
         let ceilingLevel = canvas.height * 0.2;
@@ -148,11 +155,19 @@
         let gameTime = 0;
         let shipFlicker = false;
         let flickerCount = 0;
+        let shipXVelocity = 0; // Horizontal velocity
+        const shipAcceleration = 0.3; // How fast the ship moves
+        const shipFriction = 0.9; // Friction effect to smooth movement
+
+        let lives = 3; // Ship starts with 3 lives
+        let isHit = false; // To track ship blinking effect
+        let hitTimer = 0;  // Timer for blinking animation
+
 
         // Ship properties
         const shipWidth = 80;
         const shipHeight = 40;
-        const shipX = canvas.width * 0.2;
+        let shipX = canvas.width * 0.2;
         const gravity = 0.3;
 
         // Create a ship glow effect
@@ -195,6 +210,30 @@
                 ["", "", "👽", "", ""]
             ],
             type: "diamond"
+        },
+        {
+            pattern: [
+                ["🥚", "🥚", "🥚"],
+                ["🥚", "🥚", "🥚"],
+                ["🥚", "🥚", "🥚"],
+                ["🥚", "🥚", "🥚"],
+                ["🥚", "🥚", "🥚"],
+                ["🥚", "🥚", "🥚"],
+            ],
+            type: "eggs"
+        },
+        {
+            pattern: [
+                ["🦴","🦴", "🦴", "🦴"],
+                ["🦴","🦴", "🦴", "🦴"],
+                ["","", "🦴", "🦴"],
+                ["","", "🦴", "🦴"],
+                ["","", "🦴", "🦴"],
+                ["🦴","🦴", "🦴", "🦴"],
+                ["🦴","🦴", "🦴", "🦴"],
+
+            ],
+            type: "eggs"
         }
         ];
 
@@ -202,10 +241,11 @@
         const collectibles = [
         { emoji: "💧", name: "red drop", points: 5 },
         { emoji: "💍", name: "ring", points: 10 },
-        { emoji: "🥥", name: "coconut", points: 15 }
+        { emoji: "🥥", name: "coconut", points: 15 },
+        { emoji: "⏳", name: "time", points: 10 }
         ];
 
-        let inventory = { "💧": 0, "💍": 0, "🥥": 0 };
+        let inventory = { "💧": 0, "💍": 0, "🥥": 0, "⏳": 0 };
 
         let invincible = false;
         let invincibleTimer = 0;
@@ -220,19 +260,25 @@
             for (let i = 0; i < numLayers; i++) {
                 const layer = {
                     x: 0,
-                    speed: 0.5 + i * 0.5,
+                    speed: 0.3 + i * 0.3, // Different speeds for parallax effect
                     clouds: []
                 };
 
-                // Generate random clouds/mist for each layer
-                const numClouds = 5 + Math.floor(Math.random() * 10);
-                for (let j = 0; j < numClouds; j++) {
+                const numObjects = 5 + Math.floor(Math.random() * 10); // Random number of objects
+
+                for (let j = 0; j < numObjects; j++) {
+                    const type = Math.random() > 0.7 ? "planet" : "star"; // 30% chance for a planet
+                    const depth = 0.1 + Math.random() * 0.3; // Depth factor between 0.3 and 1.0
+
                     layer.clouds.push({
                         x: Math.random() * canvas.width,
                         y: Math.random() * canvas.height,
-                        width: 50 + Math.random() * 150,
-                        height: 20 + Math.random() * 50,
-                        opacity: 0.1 + Math.random() * 0.2
+                        width: type === "planet" ? 60 + Math.random() * 140 : 4 + Math.random() * 6,
+                        height: type === "planet" ? 60 + Math.random() * 140 : 4 + Math.random() * 6,
+                        opacity: type === "star" ? (0.5 + Math.random() * 0.5) : .1,
+                        color: type === "planet" ? ["#ffcc00", "#ff5500", "#0099ff", "#00ff66", "#ff66ff"][Math.floor(Math.random() * 5)] : "white",
+                        type: type,
+                        depth: depth // Assign depth for parallax effect
                     });
                 }
 
@@ -240,6 +286,8 @@
             }
             bgReady = true;
         }
+
+
 
         // Particles system for effects
         const particles = [];
@@ -293,20 +341,34 @@
                     layer.x = 0;
                 }
 
-                for (const cloud of layer.clouds) {
-                    cloud.x -= layer.speed;
-                    if (cloud.x < -cloud.width) {
-                        cloud.x = canvas.width + Math.random() * 100;
-                        cloud.y = Math.random() * canvas.height;
+                for (const obj of layer.clouds) {
+                    obj.x -= layer.speed * obj.depth; // Adjust movement by depth
+                    if (obj.x < -obj.width) {
+                        obj.x = canvas.width + Math.random() * 100;
+                        obj.y = Math.random() * canvas.height;
                     }
 
-                    ctx.fillStyle = `rgba(${30 + Math.random() * 5}, ${0}, ${0}, ${cloud.opacity})`;
-                    ctx.beginPath();
-                    ctx.ellipse(cloud.x, cloud.y, cloud.width, cloud.height, 0, 0, Math.PI * 2);
-                    ctx.fill();
+                    let adjustedOpacity = obj.opacity * obj.depth; // Adjust opacity by depth
+
+                    if (obj.type === "star") {
+                        // Draw stars with depth-based brightness
+                        ctx.fillStyle = `rgba(255, 255, 255, ${adjustedOpacity})`;
+                        ctx.beginPath();
+                        ctx.arc(obj.x, obj.y, obj.width / 6, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (obj.type === "planet") {
+                        // Draw planets with depth-based transparency
+                        ctx.fillStyle = obj.color;
+                        ctx.globalAlpha = adjustedOpacity;
+                        ctx.beginPath();
+                        ctx.arc(obj.x, obj.y, obj.width / 2, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.globalAlpha = 1.0; // Reset opacity for other elements
+                    }
                 }
             }
         }
+
 
         function drawCollectibles() {
             ctx.font = "40px Arial";  // Increased font size for visibility
@@ -323,9 +385,12 @@
 
         // Draw the ship with a glow effect
         function drawShip() {
-            if (gameOver && shipFlicker) {
+            if (isHit && shipFlicker) {
                 flickerCount++;
-                if (flickerCount % 6 < 3) return;
+                if (flickerCount % 6 < 3) {
+                    isHit = false;
+                    return
+                }
             }
 
             // Ship glow effect changes when invincible
@@ -535,7 +600,7 @@
 
             // Check ground and ceiling collision
             if (shipHitbox.bottom > groundLevel || shipHitbox.top < ceilingLevel) {
-                gameOver = true;
+                loseLife();
                 shipFlicker = true;
                 return;
             }
@@ -566,7 +631,7 @@
                                     shipHitbox.top < emojiHitbox.bottom
                                 ) {
                                     console.log("Collision detected with emoji at:", x, y);
-                                    gameOver = true;
+                                    loseLife();
                                     shipFlicker = true;
                                     return;
                                 }
@@ -605,60 +670,116 @@
                     inventory[item.emoji]++; // Update inventory count
                     updateInventoryDisplay(); // Refresh inventory UI
                     activeCollectibles.splice(i, 1);
-                }
 
-                if (item.emoji === "💧") {
-                    console.log("Invincibility Activated!");
-                    invincible = true;
-                    invincibleTimer = 600; // 10 seconds (assuming 60 FPS)
+                    if (item.emoji === "💧") {
+                        console.log("Invincibility Activated!");
+                        invincible = true;
+                        invincibleTimer = 600; // 10 seconds (assuming 60 FPS)
+                    }
+
+                    if (item.emoji === "⏳") {
+                        console.log("Time Slowdown Activated!");
+                        slowDownTime();
+                    }
                 }
             }
         }
 
+        function slowDownTime() {
+            if (window.isTimeSlowed) return; // Prevent multiple slowdowns at the same time
+            window.isTimeSlowed = true;
+
+            const originalSpeed = obstacleSpeed; // Store the original speed
+
+            obstacleSpeed *= 0.5; // Slow down time (reduce speed by half)
+            console.log("Game slowed down!");
+
+            // Restore speed after 5 seconds
+            setTimeout(() => {
+                obstacleSpeed = originalSpeed;
+                console.log("Game speed restored!");
+                window.isTimeSlowed = false; // Allow future slowdowns
+            }, 5000);
+        }
+
+        function loseLife() {
+            if (isHit) return; // Prevent multiple hits in a short time
+            isHit = true;
+            hitTimer = 60; // Make the ship blink for 1 second
+
+            lives--; // Subtract 1 life
+            console.log(`💥 Ship hit! Lives left: ${lives}`);
+
+            if (lives > 0) {
+                restartAfterHit(); // Restart without losing score
+            } else {
+                gameOver = true;
+                gameOverScreen.style.display = 'flex';
+                gameOverScoreDisplay.textContent = `Final Score: ${score}`;
+            }
+        }
+
+        function restartAfterHit() {
+            console.log("⏪ Restarting after hit...");
+            shipY = canvas.height / 2;
+            shipVelocity = 0;
+            shipX = canvas.width * 0.2;
+            shipXVelocity = 0;
+
+            // Temporary invincibility after hit
+            invincible = true;
+            invincibleTimer = 120; // 2 seconds of invincibility
+        }
+
         // Handle keyboard input
         const keys = {};
-        let lastTouchY = null;
+        // Mobile touch controls
+let touchStartX = null;
+let touchStartY = null;
+let lastTouchMoveTime = 0;
+const touchSensitivity = 0.8; // Adjust for smoother acceleration
 
-        window.addEventListener("touchstart", (e) => {
-            lastTouchY = e.touches[0].clientY;
-        });
+window.addEventListener("touchstart", (e) => {
+    if (e.touches.length > 0) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        lastTouchMoveTime = Date.now();
+    }
+});
 
-        window.addEventListener("touchmove", (e) => {
-            if (lastTouchY === null) return;
+window.addEventListener("touchmove", (e) => {
+    if (touchStartX === null || touchStartY === null) return;
 
-            let touchY = e.touches[0].clientY;
-            let deltaY = touchY - lastTouchY;
+    let touchX = e.touches[0].clientX;
+    let touchY = e.touches[0].clientY;
+    let currentTime = Date.now();
 
-            // Adjust movement sensitivity
-            shipVelocity += deltaY * 0.4;
+    if (currentTime - lastTouchMoveTime > 16) { // Limit to ~60FPS
+        let deltaX = touchX - touchStartX;
+        let deltaY = touchY - touchStartY;
 
-            lastTouchY = touchY; // Update last touch position
-        });
+        // **Move Forward/Backward (Left/Right Swipe)**
+        if (Math.abs(deltaX) > 10) {
+            shipXVelocity += (deltaX * touchSensitivity) * 0.1; // Adjust acceleration
+        }
 
-        window.addEventListener("touchend", () => {
-            lastTouchY = null;
-        });
+        // **Move Up/Down (Vertical Swipe)**
+        if (Math.abs(deltaY) > 10) {
+            shipVelocity += (deltaY * touchSensitivity)
+        }
 
+        // Update last touch positions for smoother movement
+        touchStartX = touchX;
+        touchStartY = touchY;
+        lastTouchMoveTime = currentTime;
+    }
+});
 
-        window.addEventListener("touchstart", (e) => {
-            touchStartY = e.touches[0].clientY;
-        });
+window.addEventListener("touchend", () => {
+    touchStartX = null;
+    touchStartY = null;
+});
 
-        window.addEventListener("touchmove", (e) => {
-            if (touchStartY === null) return;
-            let touchY = e.touches[0].clientY;
-            let deltaY = touchY - touchStartY;
-
-            // Move up if swiping up, move down if swiping down
-            if (deltaY < -20) shipVelocity -= 0.8;
-            if (deltaY > 20) shipVelocity += 0.8;
-
-            touchStartY = touchY; // Reset for smooth movement
-        });
-
-        window.addEventListener("touchend", () => {
-            touchStartY = null;
-        });
 
         window.addEventListener('keydown', e => {
             keys[e.key] = true;
@@ -670,12 +791,22 @@
         function handleInput() {
             // Move ship up with W or Up arrow
             if (keys['w'] || keys['W'] || keys['ArrowUp']) {
-                shipVelocity -= 0.8;
+                shipVelocity -= 1.6;
             }
 
             // Move ship down with S or Down arrow
             if (keys['s'] || keys['S'] || keys['ArrowDown']) {
                 shipVelocity += 0.8;
+            }
+
+            // Move ship left with A or Left Arrow
+            if (keys['a'] || keys['A'] || keys['ArrowLeft']) {
+                shipXVelocity -= shipAcceleration * 1.2;
+            }
+
+            // Move ship right with D or Right Arrow
+            if (keys['d'] || keys['D'] || keys['ArrowRight']) {
+                shipXVelocity += shipAcceleration;
             }
         }
 
@@ -694,14 +825,26 @@
                 }
             }
 
-            // Apply gravity and velocity to ship
+            // Apply gravity and velocity to ship (Vertical Movement)
             shipVelocity += gravity;
             shipVelocity *= 0.6; // Add some drag
             shipY += shipVelocity;
 
-            // Limit ship velocity
+            // Limit ship velocity (vertical)
             if (shipVelocity > 10) shipVelocity = 10;
             if (shipVelocity < -10) shipVelocity = -10;
+
+            // Apply friction to smooth horizontal movement
+            shipXVelocity *= shipFriction;
+            shipX += shipXVelocity;
+
+            // **Prevent the ship from going out of bounds (Left/Right)**
+            if (shipX < 0) shipX = 0;
+            if (shipX > canvas.width - shipWidth) shipX = canvas.width - shipWidth;
+
+            // **Prevent the ship from going out of bounds (Up/Down)**
+            if (shipY < ceilingLevel) shipY = ceilingLevel;
+            if (shipY > groundLevel - shipHeight) shipY = groundLevel - shipHeight;
 
             // Add ship trail particles
             if (gameTime % 2 === 0) {
@@ -722,10 +865,9 @@
             }
 
             // Spawn a new collectible occasionally
-            if (gameTime % 250 === 0) { // More predictable timing for collectibles
+            if (gameTime % 250 === 0) {
                 createCollectible();
             }
-
 
             // Update obstacles
             for (let i = obstacles.length - 1; i >= 0; i--) {
@@ -747,6 +889,7 @@
 
             // Update score
             scoreDisplay.textContent = `Score: ${score}`;
+            document.getElementById('lives').innerHTML = `❤️ Vidas: ${lives}`;
         }
 
         // Main draw function
@@ -763,7 +906,7 @@
 
         function updateInventoryDisplay() {
             const inventoryDisplay = document.getElementById('inventory');
-            inventoryDisplay.innerHTML = `Inventory:
+            inventoryDisplay.innerHTML = `Inventário:
                 💍 ${inventory["💍"]}
                 🥥 ${inventory["🥥"]}
                 💧 ${inventory["💧"]}`;
