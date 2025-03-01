@@ -1,706 +1,1565 @@
+[nave.html]
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cursed Voyage</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Courier New', monospace;
+            color: #8a0303;
+        }
+
+        canvas {
+            display: block;
+            background: linear-gradient(to bottom, #0a0a0a, #1a0707);
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #start-screen, #game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 10;
+        }
+
+        h1 {
+            color: #8a0303;
+            font-size: 3em;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000; }
+            50% { text-shadow: 0 0 15px #ff0000, 0 0 30px #ff0000; }
+            100% { text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000; }
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 1.5em;
+            border: 2px solid #8a0303;
+            background-color: #1a0707;
+            color: #8a0303;
+            cursor: pointer;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background-color: #8a0303;
+            color: #000;
+            transform: scale(1.05);
+        }
+
+        #score {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 1.5em;
+            z-index: 5;
+        }
+
+        #game-over-score {
+            font-size: 2em;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        <div id="score">Score: 0</div>
+        <div id="inventory" style="
+            position: absolute;
+            top: 50px;
+            left: 20px;
+            font-size: 1.2em;
+            color: white;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;">
+            Inventory:
+        </div>
+
+        <div id="start-screen">
+            <h1>CURSED VOYAGE</h1>
+            <p>Navigate your ship through the haunted passage</p>
+            <p>Use UP and DOWN arrow keys or W and S to move</p>
+            <button id="start-button">BEGIN JOURNEY</button>
+        </div>
+
+        <div id="game-over-screen" style="display: none;">
+            <h1>JOURNEY ENDED</h1>
+            <div id="game-over-score">Score: 0</div>
+            <button id="restart-button">TRY AGAIN</button>
+        </div>
+    </div>
+
+    <script>
+        // Game variables
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score');
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const gameOverScoreDisplay = document.getElementById('game-over-score');
+        const startButton = document.getElementById('start-button');
+        const restartButton = document.getElementById('restart-button');
+
+        // Set canvas size
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Game state
+        let gameStarted = false;
+        let gameOver = false;
+        let score = 0;
+        let shipY = canvas.height / 2;
+        let shipVelocity = 0;
+        let obstacleSpeed = 1;
+        let obstacles = [];
+        let groundLevel = canvas.height * 0.8;
+        let ceilingLevel = canvas.height * 0.2;
+        let lastObstacleTime = 0;
+        let gameTime = 0;
+        let shipFlicker = false;
+        let flickerCount = 0;
+
+        // Ship properties
+        const shipWidth = 80;
+        const shipHeight = 40;
+        const shipX = canvas.width * 0.2;
+        const gravity = 0.3;
+
+        // Create a ship glow effect
+        const shipGlow = {
+            radius: 20,
+            opacity: 0.5,
+            color: '#8a0303'
+        };
+
+        // Images for backgrounds and effects
+        const bgLayers = [];
+        const numLayers = 3;
+        let bgReady = false;
+
+        // Define obstacle patterns with emojis
+        // Define emoji obstacle shapes
+        const emojiShapes = [
+        { // Triangle of Thumbs Up 🤡
+            pattern: [
+                ["", "", "🤡", "", ""],
+                ["", "🤡", "🤡", "🤡", ""],
+                ["🤡", "🤡", "🤡", "🤡", "🤡"]
+            ],
+            type: "triangle"
+        },
+        { // Square of Poop 👾
+            pattern: [
+                ["👾", "👾", "👾"],
+                ["👾", "👾", "👾"],
+                ["👾", "👾", "👾"]
+            ],
+            type: "square"
+        },
+        { // Diamond (Losango) of Hearts 👽
+            pattern: [
+                ["", "", "👽", "", ""],
+                ["", "👽", "👽", "👽", ""],
+                ["👽", "👽", "👽", "👽", "👽"],
+                ["", "👽", "👽", "👽", ""],
+                ["", "", "👽", "", ""]
+            ],
+            type: "diamond"
+        }
+        ];
+
+        // Define collectible items
+        const collectibles = [
+        { emoji: "💧", name: "red drop", points: 5 },
+        { emoji: "💍", name: "ring", points: 10 },
+        { emoji: "🥥", name: "coconut", points: 15 }
+        ];
+
+        let inventory = { "💧": 0, "💍": 0, "🥥": 0 };
+
+        let invincible = false;
+        let invincibleTimer = 0;
+
+
+        // List of collectible objects in the game
+        let activeCollectibles = [];
+
+
+        // Create background layers
+        function createBackgroundLayers() {
+            for (let i = 0; i < numLayers; i++) {
+                const layer = {
+                    x: 0,
+                    speed: 0.5 + i * 0.5,
+                    clouds: []
+                };
+
+                // Generate random clouds/mist for each layer
+                const numClouds = 5 + Math.floor(Math.random() * 10);
+                for (let j = 0; j < numClouds; j++) {
+                    layer.clouds.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height,
+                        width: 50 + Math.random() * 150,
+                        height: 20 + Math.random() * 50,
+                        opacity: 0.1 + Math.random() * 0.2
+                    });
+                }
+
+                bgLayers.push(layer);
+            }
+            bgReady = true;
+        }
+
+        // Particles system for effects
+        const particles = [];
+
+        function createShipTrail() {
+            particles.push({
+                x: shipX,
+                y: shipY + shipHeight / 2,
+                size: 2 + Math.random() * 6,
+                speedX: -1 - Math.random() * 2,
+                speedY: (Math.random() - 0.5) * 2,
+                life: 30 + Math.random() * 20,
+                color: `rgba(${138 + Math.random() * 50}, ${3 + Math.random() * 20}, ${3 + Math.random() * 20}, ${0.3 + Math.random() * 0.5})`
+            });
+        }
+
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.speedX;
+                p.y += p.speedY;
+                p.life--;
+
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        function drawParticles() {
+            particles.forEach(p => {
+                ctx.globalAlpha = p.life / 50;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            });
+        }
+
+        // Draw background layers
+        function drawBackground() {
+            if (!bgReady) return;
+
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for (const layer of bgLayers) {
+                layer.x -= layer.speed;
+                if (layer.x < -canvas.width) {
+                    layer.x = 0;
+                }
+
+                for (const cloud of layer.clouds) {
+                    cloud.x -= layer.speed;
+                    if (cloud.x < -cloud.width) {
+                        cloud.x = canvas.width + Math.random() * 100;
+                        cloud.y = Math.random() * canvas.height;
+                    }
+
+                    ctx.fillStyle = `rgba(${30 + Math.random() * 5}, ${0}, ${0}, ${cloud.opacity})`;
+                    ctx.beginPath();
+                    ctx.ellipse(cloud.x, cloud.y, cloud.width, cloud.height, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        function drawCollectibles() {
+            ctx.font = "40px Arial";  // Increased font size for visibility
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+
+            for (const item of activeCollectibles) {
+                if (!item.collected) {
+                    ctx.fillStyle = "white"; // Ensure high contrast for visibility
+                    ctx.fillText(item.emoji, item.x, item.y);
+                }
+            }
+        }
+
+        // Draw the ship with a glow effect
+        function drawShip() {
+            if (gameOver && shipFlicker) {
+                flickerCount++;
+                if (flickerCount % 6 < 3) return;
+            }
+
+            // Ship glow effect changes when invincible
+            ctx.beginPath();
+            ctx.arc(shipX + shipWidth / 2, shipY + shipHeight / 2, shipGlow.radius, 0, Math.PI * 2);
+            const gradient = ctx.createRadialGradient(
+                shipX + shipWidth / 2, shipY + shipHeight / 2, 0,
+                shipX + shipWidth / 2, shipY + shipHeight / 2, shipGlow.radius
+            );
+            if (invincible) {
+                gradient.addColorStop(0, 'rgba(0, 200, 255, 0.7)'); // Bright Blue Glow
+                gradient.addColorStop(1, 'rgba(0, 200, 255, 0)');
+            } else {
+                gradient.addColorStop(0, 'rgba(138, 3, 3, 0.7)');
+                gradient.addColorStop(1, 'rgba(138, 3, 3, 0)');
+            }
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            // Ship body
+            ctx.fillStyle = '#350101';
+            ctx.beginPath();
+            ctx.moveTo(shipX, shipY + shipHeight / 2);
+            ctx.lineTo(shipX + shipWidth * 0.3, shipY + shipHeight * 0.2);
+            ctx.lineTo(shipX + shipWidth * 0.8, shipY + shipHeight * 0.2);
+            ctx.lineTo(shipX + shipWidth, shipY + shipHeight / 2);
+            ctx.lineTo(shipX + shipWidth * 0.8, shipY + shipHeight * 0.8);
+            ctx.lineTo(shipX + shipWidth * 0.3, shipY + shipHeight * 0.8);
+            ctx.closePath();
+            ctx.fill();
+
+            // Ship details
+            ctx.strokeStyle = '#8a0303';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(shipX + shipWidth * 0.3, shipY + shipHeight * 0.2);
+            ctx.lineTo(shipX + shipWidth * 0.3, shipY + shipHeight * 0.8);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(shipX + shipWidth * 0.6, shipY + shipHeight * 0.3);
+            ctx.lineTo(shipX + shipWidth * 0.6, shipY + shipHeight * 0.7);
+            ctx.stroke();
+
+            // Ship window
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+            ctx.beginPath();
+            ctx.arc(shipX + shipWidth * 0.45, shipY + shipHeight * 0.5, shipHeight * 0.15, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#8a0303';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+
+        // Create obstacles: ground spikes and ceiling spikes
+        function createObstacle() {
+            const isEmojiBlock = Math.random() > 0.5; // 50% chance to generate emoji obstacles
+
+            // Calculate possible spawn points to prevent overlap
+            const numSections = 5; // Divide screen height into 5 sections
+            const sectionHeight = (groundLevel - ceilingLevel) / numSections;
+            let availableSections = Array.from({ length: numSections }, (_, i) => i);
+
+            // Find a random available section
+            const sectionIndex = availableSections.splice(
+                Math.floor(Math.random() * availableSections.length),
+                1
+            )[0];
+
+            if (isEmojiBlock) {
+                const shape = emojiShapes[Math.floor(Math.random() * emojiShapes.length)];
+                const blockSize = 40;
+                const numRows = shape.pattern.length;
+                const numCols = shape.pattern[0].length;
+
+                const obstacle = {
+                    type: "emoji-block",
+                    x: canvas.width,
+                    width: numCols * blockSize,
+                    height: numRows * blockSize,
+                    pattern: shape.pattern,
+                    blockSize: blockSize,
+                    rows: numRows,
+                    isGroundObstacle: Math.random() > 0.5,
+                    passed: false
+                };
+
+                // Position the obstacle inside the selected section
+                obstacle.y = ceilingLevel + sectionIndex * sectionHeight + (sectionHeight - obstacle.height) / 2;
+
+                obstacles.push(obstacle);
+            } else {
+                // Traditional spike obstacle
+                const width = 30 + Math.random() * 30;
+                const height = 70 + Math.random() * 100;
+
+                const obstacle = {
+                    type: "spike",
+                    x: canvas.width,
+                    width,
+                    height,
+                    isGroundObstacle: Math.random() > 0.5,
+                    passed: false
+                };
+
+                // Position spikes at a separate height section
+                obstacle.y = ceilingLevel + sectionIndex * sectionHeight + (sectionHeight - height) / 2;
+
+                obstacles.push(obstacle);
+            }
+        }
+
+        function createCollectible() {
+            const item = collectibles[Math.floor(Math.random() * collectibles.length)];
+            const size = 30; // Size of collectible
+            const yPos = Math.random() * (groundLevel - ceilingLevel - size) + ceilingLevel; // Random y position
+
+            activeCollectibles.push({
+                emoji: item.emoji,
+                name: item.name,
+                points: item.points,
+                x: canvas.width, // Start off-screen
+                y: yPos,
+                size: size,
+                collected: false
+            });
+        }
+
+
+        // Draw ground and ceiling
+        function drawGroundAndCeiling() {
+            // Draw ceiling
+            const ceilingGradient = ctx.createLinearGradient(0, 0, 0, ceilingLevel);
+            ceilingGradient.addColorStop(0, '#0a0a0a');
+            ceilingGradient.addColorStop(1, '#350101');
+            ctx.fillStyle = ceilingGradient;
+            ctx.fillRect(0, 0, canvas.width, ceilingLevel);
+
+            // Ceiling details
+            for (let i = 0; i < canvas.width; i += 40) {
+                const height = 10 + Math.sin(i * 0.05 + gameTime * 0.01) * 5;
+                ctx.fillStyle = '#8a0303';
+                ctx.beginPath();
+                ctx.moveTo(i, ceilingLevel);
+                ctx.lineTo(i + 20, ceilingLevel);
+                ctx.lineTo(i + 10, ceilingLevel + height);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // Draw ground
+            const groundGradient = ctx.createLinearGradient(0, groundLevel, 0, canvas.height);
+            groundGradient.addColorStop(0, '#350101');
+            groundGradient.addColorStop(1, '#0a0a0a');
+            ctx.fillStyle = groundGradient;
+            ctx.fillRect(0, groundLevel, canvas.width, canvas.height - groundLevel);
+
+            // Ground details
+            for (let i = 0; i < canvas.width; i += 40) {
+                const height = 10 + Math.sin(i * 0.03 + gameTime * 0.01) * 5;
+                ctx.fillStyle = '#8a0303';
+                ctx.beginPath();
+                ctx.moveTo(i, groundLevel);
+                ctx.lineTo(i + 20, groundLevel);
+                ctx.lineTo(i + 10, groundLevel - height);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+
+        // Draw obstacles
+        function drawObstacles() {
+            for (const obstacle of obstacles) {
+                if (obstacle.type === "emoji-block") {
+                    // Draw emoji obstacles
+                    for (let row = 0; row < obstacle.rows; row++) {
+                        for (let col = 0; col < obstacle.pattern[row].length; col++) {
+                            const emoji = obstacle.pattern[row][col];
+                            if (emoji === "") continue; // Skip empty spaces in pattern
+
+                            const x = obstacle.x + col * obstacle.blockSize;
+                            const y = obstacle.y + row * obstacle.blockSize;
+
+                            ctx.font = `${obstacle.blockSize * 0.7}px Arial`;
+                            ctx.textAlign = "center";
+                            ctx.textBaseline = "middle";
+                            ctx.fillStyle = "yellow";  // Brighter color
+                            ctx.strokeStyle = "black"; // Outline for better visibility
+                            ctx.lineWidth = 3;
+                            ctx.strokeText(emoji, x + obstacle.blockSize / 2, y + obstacle.blockSize / 2);
+                            ctx.fillText(emoji, x + obstacle.blockSize / 2, y + obstacle.blockSize / 2);
+
+                        }
+                    }
+                }
+            }
+        }
+
+        // Check for collisions
+        function checkCollisions() {
+            const shipHitbox = {
+                left: shipX + 10,  // Less strict hitbox
+                right: shipX + shipWidth - 10,
+                top: shipY + 5,    // More space at the top
+                bottom: shipY + shipHeight - 5
+            };
+
+            // Check ground and ceiling collision
+            if (shipHitbox.bottom > groundLevel || shipHitbox.top < ceilingLevel) {
+                gameOver = true;
+                shipFlicker = true;
+                return;
+            }
+
+            // Check obstacle collisions
+            for (const obstacle of obstacles) {
+                if (obstacle.isGroundObstacle) {
+                    // Ground obstacle collision
+                    if (obstacle.type === "emoji-block") {
+                        for (let row = 0; row < obstacle.rows; row++) {
+                            for (let col = 0; col < obstacle.pattern[row].length; col++) {
+                                const emoji = obstacle.pattern[row][col];
+                                if (emoji === "") continue; // Skip empty spaces
+
+                                const x = obstacle.x + col * obstacle.blockSize;
+                                const y = obstacle.y + row * obstacle.blockSize;
+                                const emojiHitbox = {
+                                    left: x + 2,  // Adjust hitbox to match actual emoji size
+                                    right: x + obstacle.blockSize - 2,
+                                    top: y + 2,
+                                    bottom: y + obstacle.blockSize - 2
+                                };
+
+                                if (!invincible &&
+                                    shipHitbox.right > emojiHitbox.left &&
+                                    shipHitbox.left < emojiHitbox.right &&
+                                    shipHitbox.bottom > emojiHitbox.top &&
+                                    shipHitbox.top < emojiHitbox.bottom
+                                ) {
+                                    console.log("Collision detected with emoji at:", x, y);
+                                    gameOver = true;
+                                    shipFlicker = true;
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Check if obstacle has been passed
+                if (!obstacle.passed && shipX > obstacle.x + obstacle.width) {
+                    obstacle.passed = true;
+                    score++;
+                    obstacleSpeed += 0.05; // Increase difficulty
+                }
+            }
+
+            // Check for collectible pickups
+            for (let i = activeCollectibles.length - 1; i >= 0; i--) {
+                const item = activeCollectibles[i];
+
+                const itemHitbox = {
+                    left: item.x - item.size / 2,
+                    right: item.x + item.size / 2,
+                    top: item.y - item.size / 2,
+                    bottom: item.y + item.size / 2
+                };
+
+                if (
+                    shipHitbox.right > itemHitbox.left &&
+                    shipHitbox.left < itemHitbox.right &&
+                    shipHitbox.bottom > itemHitbox.top &&
+                    shipHitbox.top < itemHitbox.bottom
+                ) {
+                    console.log(`Collected: ${item.name}`);
+                    score += item.points;  // Increase score
+                    inventory[item.emoji]++; // Update inventory count
+                    updateInventoryDisplay(); // Refresh inventory UI
+                    activeCollectibles.splice(i, 1);
+                }
+
+                if (item.emoji === "💧") {
+                    console.log("Invincibility Activated!");
+                    invincible = true;
+                    invincibleTimer = 600; // 10 seconds (assuming 60 FPS)
+                }
+            }
+        }
+
+        // Handle keyboard input
+        const keys = {};
+        let lastTouchY = null;
+
+        window.addEventListener("touchstart", (e) => {
+            lastTouchY = e.touches[0].clientY;
+        });
+
+        window.addEventListener("touchmove", (e) => {
+            if (lastTouchY === null) return;
+
+            let touchY = e.touches[0].clientY;
+            let deltaY = touchY - lastTouchY;
+
+            // Adjust movement sensitivity
+            shipVelocity += deltaY * 0.4;
+
+            lastTouchY = touchY; // Update last touch position
+        });
+
+        window.addEventListener("touchend", () => {
+            lastTouchY = null;
+        });
+
+
+        window.addEventListener("touchstart", (e) => {
+            touchStartY = e.touches[0].clientY;
+        });
+
+        window.addEventListener("touchmove", (e) => {
+            if (touchStartY === null) return;
+            let touchY = e.touches[0].clientY;
+            let deltaY = touchY - touchStartY;
+
+            // Move up if swiping up, move down if swiping down
+            if (deltaY < -20) shipVelocity -= 0.8;
+            if (deltaY > 20) shipVelocity += 0.8;
+
+            touchStartY = touchY; // Reset for smooth movement
+        });
+
+        window.addEventListener("touchend", () => {
+            touchStartY = null;
+        });
+
+        window.addEventListener('keydown', e => {
+            keys[e.key] = true;
+        });
+        window.addEventListener('keyup', e => {
+            keys[e.key] = false;
+        });
+
+        function handleInput() {
+            // Move ship up with W or Up arrow
+            if (keys['w'] || keys['W'] || keys['ArrowUp']) {
+                shipVelocity -= 0.8;
+            }
+
+            // Move ship down with S or Down arrow
+            if (keys['s'] || keys['S'] || keys['ArrowDown']) {
+                shipVelocity += 0.8;
+            }
+        }
+
+        // Update game state
+        function updateGame() {
+            if (!gameStarted || gameOver) return;
+
+            gameTime++;
+            handleInput();
+
+            if (invincible) {
+                invincibleTimer--;
+                if (invincibleTimer <= 0) {
+                    invincible = false;
+                    console.log("Invincibility Over!");
+                }
+            }
+
+            // Apply gravity and velocity to ship
+            shipVelocity += gravity;
+            shipVelocity *= 0.6; // Add some drag
+            shipY += shipVelocity;
+
+            // Limit ship velocity
+            if (shipVelocity > 10) shipVelocity = 10;
+            if (shipVelocity < -10) shipVelocity = -10;
+
+            // Add ship trail particles
+            if (gameTime % 2 === 0) {
+                createShipTrail();
+            }
+
+            // Update particles
+            updateParticles();
+
+            // Move collectibles
+            for (let i = activeCollectibles.length - 1; i >= 0; i--) {
+                activeCollectibles[i].x -= obstacleSpeed;
+
+                // Remove if it goes off-screen
+                if (activeCollectibles[i].x < -50) {
+                    activeCollectibles.splice(i, 1);
+                }
+            }
+
+            // Spawn a new collectible occasionally
+            if (gameTime % 250 === 0) { // More predictable timing for collectibles
+                createCollectible();
+            }
+
+
+            // Update obstacles
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].x -= obstacleSpeed;
+
+                if (obstacles[i].x < -obstacles[i].width) {
+                    obstacles.splice(i, 1);
+                }
+            }
+
+            // Create new obstacles
+            if (gameTime - lastObstacleTime > 120) {
+                createObstacle();
+                lastObstacleTime = gameTime;
+            }
+
+            // Check collisions
+            checkCollisions();
+
+            // Update score
+            scoreDisplay.textContent = `Score: ${score}`;
+        }
+
+        // Main draw function
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawBackground();   // Draw the background first
+            drawObstacles();    // Then obstacles
+            drawParticles();    // Then particle effects
+            drawCollectibles();
+            drawShip();         // Then the ship
+            drawGroundAndCeiling(); // Finally, draw the ceiling and ground last to overlay everything
+        }
+
+        function updateInventoryDisplay() {
+            const inventoryDisplay = document.getElementById('inventory');
+            inventoryDisplay.innerHTML = `Inventory:
+                💍 ${inventory["💍"]}
+                🥥 ${inventory["🥥"]}
+                💧 ${inventory["💧"]}`;
+        }
+
+        // Game loop
+        function gameLoop() {
+            updateGame();
+            draw();
+            setTimeout(() => requestAnimationFrame(gameLoop), 1000 / 60);
+        }
+
+        // Start the game
+        startButton.addEventListener('click', () => {
+            startScreen.style.display = 'none';
+            gameOverScreen.style.display = 'none'; // Hide Game Over screen if visible
+            gameStarted = true;
+            createBackgroundLayers();
+            gameLoop();
+            gameStarted = true;
+            createBackgroundLayers();
+            gameLoop();
+        });
+
+        // Restart the game
+        restartButton.addEventListener('click', () => {
+            gameOverScreen.style.display = 'none';
+            gameStarted = true;
+            gameOver = false;
+            score = 0;
+            shipY = canvas.height / 2;
+            shipVelocity = 0;
+            obstacleSpeed = 1;
+            obstacles = [];
+            lastObstacleTime = 0;
+            gameTime = 0;
+            shipFlicker = false;
+            activeCollectibles = [];
+            inventory = { "💧": 0, "💍": 0, "🥥": 0 };
+            updateInventoryDisplay();
+            gameLoop();
+
+            // Reset game state
+            gameStarted = true;
+            gameOver = false;
+            score = 0;
+            shipY = canvas.height / 2;
+            shipVelocity = 0;
+            obstacleSpeed = 1;
+            obstacles = [];
+            lastObstacleTime = 0;
+            gameTime = 0;
+            shipFlicker = false;
+
+            // Update score display
+            scoreDisplay.textContent = `Score: ${score}`;
+        });
+
+        // Handle game over
+        function handleGameOver() {
+            if (gameOver) {
+                gameOverScreen.style.display = 'flex';
+                gameOverScoreDisplay.textContent = `Final Score: ${score}`;
+            }
+        }
+
+        // Set up resize handler
+        window.addEventListener('resize', () => {
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                groundLevel = canvas.height * 0.8;
+                ceilingLevel = canvas.height * 0.2;
+                shipY = canvas.height / 2;
+            }
+
+            // Resize once on load & listen for screen changes
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            groundLevel = canvas.height * 0.8;
+            ceilingLevel = canvas.height * 0.2;
+            shipY = canvas.height / 2;
+        });
+
+        // Start animation
+        gameLoop();
+
+        // Check for game over in a separate interval
+        setInterval(handleGameOver, 100);
+    </script>
+</body>
+</html>
+
 [emoji-escape.html]
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Emoji Escape</title>
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      font-family: 'Arial', sans-serif;
-      background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      touch-action: none;
-      user-select: none;
-    }
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Emoji Escape</title>
+ <style>
+   body {
+     margin: 0;
+     overflow: hidden;
+     font-family: 'Arial', sans-serif;
+     background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+     height: 100vh;
+     display: flex;
+     flex-direction: column;
+     align-items: center;
+     justify-content: center;
+     touch-action: none;
+     user-select: none;
+   }
 
-    #game-container {
-      position: relative;
-      width: 320px;
-      height: 480px;
-      background-color: rgba(0, 0, 0, 0.7);
-      border-radius: 20px;
-      overflow: hidden;
-      box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
-    }
+   #game-container {
+     position: relative;
+     width: 320px;
+     height: 480px;
+     background-color: rgba(0, 0, 0, 0.7);
+     border-radius: 20px;
+     overflow: hidden;
+     box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+   }
 
-    #game-area {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-    }
+   #game-area {
+     position: absolute;
+     width: 100%;
+     height: 100%;
+   }
 
-    #player {
-      position: absolute;
-      font-size: 30px;
-      transform: translate(-50%, -50%);
-      z-index: 2;
-      filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.7));
-      transition: transform 0.1s ease;
-    }
+   #player {
+     position: absolute;
+     font-size: 30px;
+     transform: translate(-50%, -50%);
+     z-index: 2;
+     filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.7));
+     transition: transform 0.1s ease;
+   }
 
-    .obstacle {
-      position: absolute;
-      background-color: rgba(255, 255, 255, 0.2);
-      border: 2px solid rgba(255, 255, 255, 0.5);
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(255, 255, 255, 0.3) inset;
-    }
+   .obstacle {
+     position: absolute;
+     background-color: rgba(255, 255, 255, 0.2);
+     border: 2px solid rgba(255, 255, 255, 0.5);
+     border-radius: 8px;
+     box-shadow: 0 0 10px rgba(255, 255, 255, 0.3) inset;
+   }
 
-    .collectible {
-      position: absolute;
-      font-size: 20px;
-      transform: translate(-50%, -50%);
-      filter: drop-shadow(0 0 3px gold);
-      animation: pulse 1.5s infinite alternate;
-    }
+   .collectible {
+     position: absolute;
+     font-size: 20px;
+     transform: translate(-50%, -50%);
+     filter: drop-shadow(0 0 3px gold);
+     animation: pulse 1.5s infinite alternate;
+   }
 
-    #score-display {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      color: white;
-      font-size: 18px;
-      font-weight: bold;
-      text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
-      z-index: 10;
-    }
+   #score-display {
+     position: absolute;
+     top: 10px;
+     right: 10px;
+     color: white;
+     font-size: 18px;
+     font-weight: bold;
+     text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+     z-index: 10;
+   }
 
-    #level-display {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      color: white;
-      font-size: 18px;
-      font-weight: bold;
-      text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
-      z-index: 10;
-    }
+   #level-display {
+     position: absolute;
+     top: 10px;
+     left: 10px;
+     color: white;
+     font-size: 18px;
+     font-weight: bold;
+     text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+     z-index: 10;
+   }
 
-    #start-screen, #game-over-screen {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background-color: rgba(0, 0, 0, 0.8);
-      z-index: 20;
-      color: white;
-      text-align: center;
-    }
+   #start-screen, #game-over-screen {
+     position: absolute;
+     width: 100%;
+     height: 100%;
+     display: flex;
+     flex-direction: column;
+     align-items: center;
+     justify-content: center;
+     background-color: rgba(0, 0, 0, 0.8);
+     z-index: 20;
+     color: white;
+     text-align: center;
+   }
 
-    #game-over-screen {
-      display: none;
-    }
+   #game-over-screen {
+     display: none;
+   }
 
-    h1 {
-      font-size: 32px;
-      margin-bottom: 20px;
-      text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-    }
+   h1 {
+     font-size: 32px;
+     margin-bottom: 20px;
+     text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+   }
 
-    button {
-      padding: 12px 24px;
-      font-size: 18px;
-      background: linear-gradient(45deg, #f06, #9f6);
-      border: none;
-      border-radius: 30px;
-      color: white;
-      cursor: pointer;
-      margin-top: 20px;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-      transition: all 0.3s ease;
-    }
+   button {
+     padding: 12px 24px;
+     font-size: 18px;
+     background: linear-gradient(45deg, #f06, #9f6);
+     border: none;
+     border-radius: 30px;
+     color: white;
+     cursor: pointer;
+     margin-top: 20px;
+     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+     transition: all 0.3s ease;
+   }
 
-    button:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-    }
+   button:hover {
+     transform: translateY(-3px);
+     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+   }
 
-    button:active {
-      transform: translateY(0);
-    }
+   button:active {
+     transform: translateY(0);
+   }
 
-    #emoji-selector {
-      display: flex;
-      gap: 10px;
-      margin: 15px 0;
-    }
+   #emoji-selector {
+     display: flex;
+     gap: 10px;
+     margin: 15px 0;
+   }
 
-    .emoji-option {
-      font-size: 24px;
-      padding: 5px;
-      cursor: pointer;
-      border: 2px solid transparent;
-      border-radius: 50%;
-      transition: all 0.2s ease;
-    }
+   .emoji-option {
+     font-size: 24px;
+     padding: 5px;
+     cursor: pointer;
+     border: 2px solid transparent;
+     border-radius: 50%;
+     transition: all 0.2s ease;
+   }
 
-    .emoji-option:hover, .emoji-option.selected {
-      border-color: white;
-      transform: scale(1.2);
-    }
+   .emoji-option:hover, .emoji-option.selected {
+     border-color: white;
+     transform: scale(1.2);
+   }
 
-    .particle {
-      position: absolute;
-      pointer-events: none;
-      animation: fadeOut 1s forwards;
-    }
+   .particle {
+     position: absolute;
+     pointer-events: none;
+     animation: fadeOut 1s forwards;
+   }
 
-    @keyframes pulse {
-      0% { transform: translate(-50%, -50%) scale(1); }
-      100% { transform: translate(-50%, -50%) scale(1.2); }
-    }
+   @keyframes pulse {
+     0% { transform: translate(-50%, -50%) scale(1); }
+     100% { transform: translate(-50%, -50%) scale(1.2); }
+   }
 
-    @keyframes fadeOut {
-      0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-      100% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
-    }
+   @keyframes fadeOut {
+     0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+     100% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+   }
 
-    #trail {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 1;
-    }
+   #trail {
+     position: absolute;
+     width: 100%;
+     height: 100%;
+     pointer-events: none;
+     z-index: 1;
+   }
 
-    .trail-particle {
-      position: absolute;
-      border-radius: 50%;
-      pointer-events: none;
-      animation: fadeTrail 1s forwards;
-    }
+   .trail-particle {
+     position: absolute;
+     border-radius: 50%;
+     pointer-events: none;
+     animation: fadeTrail 1s forwards;
+   }
 
-    @keyframes fadeTrail {
-      0% { opacity: 0.7; }
-      100% { opacity: 0; transform: scale(0.5); }
-    }
-  </style>
+   @keyframes fadeTrail {
+     0% { opacity: 0.7; }
+     100% { opacity: 0; transform: scale(0.5); }
+   }
+ </style>
 </head>
 <body>
-  <div id="game-container">
-    <div id="game-area">
-      <div id="trail"></div>
-      <div id="player">😎</div>
-      <div id="score-display">Score: 0</div>
-      <div id="level-display">Level: 1</div>
-    </div>
-
-    <div id="start-screen">
-      <h1>Emoji Escape</h1>
-      <p>Guide your emoji through obstacles with swipe or click!</p>
-      <div id="emoji-selector">
-        <div class="emoji-option selected">😎</div>
-        <div class="emoji-option">😺</div>
-        <div class="emoji-option">🦄</div>
-        <div class="emoji-option">👻</div>
-        <div class="emoji-option">🚀</div>
-      </div>
-      <button id="start-button">START GAME</button>
-    </div>
-
-    <div id="game-over-screen">
-      <h1>Game Over!</h1>
-      <p id="final-score">Your score: 0</p>
-      <p id="high-score">High score: 0</p>
-      <button id="restart-button">PLAY AGAIN</button>
-    </div>
-  </div>
-
-  <script>
-    const player = document.getElementById('player');
-    const gameArea = document.getElementById('game-area');
-    const startScreen = document.getElementById('start-screen');
-    const gameOverScreen = document.getElementById('game-over-screen');
-    const scoreDisplay = document.getElementById('score-display');
-    const levelDisplay = document.getElementById('level-display');
-    const finalScoreDisplay = document.getElementById('final-score');
-    const highScoreDisplay = document.getElementById('high-score');
-    const startButton = document.getElementById('start-button');
-    const restartButton = document.getElementById('restart-button');
-    const emojiOptions = document.querySelectorAll('.emoji-option');
-    const trail = document.getElementById('trail');
-
-    let gameActive = false;
-    let gameInterval;
-    let obstacles = [];
-    let collectibles = [];
-    let playerX = 160;
-    let playerY = 400;
-    let score = 0;
-    let level = 1;
-    let highScore = localStorage.getItem('emojiEscapeHighScore') || 0;
-    let obstacleSpeed = 2;
-    let obstacleFrequency = 1500;
-    let collectibleFrequency = 3000;
-    let obstacleTimer;
-    let collectibleTimer;
-    let lastPosition = { x: 0, y: 0 };
-    let trailColors = ['#ff5e5e', '#ffbd5e', '#ffff5e', '#5eff5e', '#5e5eff', '#ff5eff'];
-
-    const collectibleEmojis = ['⭐', '💎', '🍭', '🔮', '🏆', '💰'];
-    const gameAreaRect = gameArea.getBoundingClientRect();
-
-    // Initialize player position
-    updatePlayerPosition(playerX, playerY);
-
-    // Event listeners
-    startButton.addEventListener('click', startGame);
-    restartButton.addEventListener('click', startGame);
-
-    emojiOptions.forEach(option => {
-      option.addEventListener('click', function() {
-        emojiOptions.forEach(opt => opt.classList.remove('selected'));
-        this.classList.add('selected');
-        player.textContent = this.textContent;
-      });
-    });
-
-    // Touch/mouse controls
-    gameArea.addEventListener('mousedown', handleInputStart);
-    gameArea.addEventListener('touchstart', e => {
-      e.preventDefault();
-      handleInputStart(e.touches[0]);
-    });
-
-    function handleInputStart(e) {
-      if (!gameActive) return;
-
-      const rect = gameArea.getBoundingClientRect();
-      const targetX = e.clientX - rect.left;
-      const targetY = e.clientY - rect.top;
-
-      movePlayer(targetX, targetY);
-
-      // Add event listeners for drag
-      document.addEventListener('mousemove', handleInputMove);
-      document.addEventListener('touchmove', e => {
-        e.preventDefault();
-        handleInputMove(e.touches[0]);
-      }, { passive: false });
-
-      document.addEventListener('mouseup', removeInputListeners);
-      document.addEventListener('touchend', removeInputListeners);
-    }
-
-    function handleInputMove(e) {
-      if (!gameActive) return;
-
-      const rect = gameArea.getBoundingClientRect();
-      const targetX = e.clientX - rect.left;
-      const targetY = e.clientY - rect.top;
-
-      movePlayer(targetX, targetY);
-    }
-
-    function removeInputListeners() {
-      document.removeEventListener('mousemove', handleInputMove);
-      document.removeEventListener('touchmove', handleInputMove);
-      document.removeEventListener('mouseup', removeInputListeners);
-      document.removeEventListener('touchend', removeInputListeners);
-    }
-
-    function movePlayer(targetX, targetY) {
-      // Add trail effect
-      if (Math.abs(targetX - playerX) > 5 || Math.abs(targetY - playerY) > 5) {
-        createTrail(playerX, playerY);
-      }
-
-      // Update player position
-      playerX = Math.max(15, Math.min(gameAreaRect.width - 15, targetX));
-      playerY = Math.max(15, Math.min(gameAreaRect.height - 15, targetY));
-      updatePlayerPosition(playerX, playerY);
-
-      // Check collision with collectibles
-      collectCollectibles();
-    }
-
-    function updatePlayerPosition(x, y) {
-      player.style.left = x + 'px';
-      player.style.top = y + 'px';
-    }
-
-    function startGame() {
-      // Reset game state
-      obstacles.forEach(obstacle => obstacle.remove());
-      collectibles.forEach(collectible => collectible.remove());
-      obstacles = [];
-      collectibles = [];
-
-      // Reset scores and level
-      score = 0;
-      level = 1;
-      updateScore();
-      updateLevel();
-
-      // Reset speed and frequency
-      obstacleSpeed = 2;
-      obstacleFrequency = 1500;
-      collectibleFrequency = 3000;
-
-      // Hide screens
-      startScreen.style.display = 'none';
-      gameOverScreen.style.display = 'none';
-
-      // Initialize player position
-      playerX = gameAreaRect.width / 2;
-      playerY = gameAreaRect.height - 80;
-      updatePlayerPosition(playerX, playerY);
-
-      // Start game loop
-      gameActive = true;
-      gameInterval = setInterval(updateGame, 16);
-      obstacleTimer = setInterval(createObstacle, obstacleFrequency);
-      collectibleTimer = setInterval(createCollectible, collectibleFrequency);
-
-      // Create initial obstacles and collectibles
-      setTimeout(createObstacle, 500);
-      setTimeout(createCollectible, 1000);
-    }
-
-    function updateGame() {
-      if (!gameActive) return;
-
-      // Move obstacles
-      moveObstacles();
-
-      // Check collisions
-      if (checkCollisions()) {
-        endGame();
-      }
-    }
-
-    function createObstacle() {
-      if (!gameActive) return;
-
-      const obstacle = document.createElement('div');
-      obstacle.className = 'obstacle';
-
-      // Random size and position
-      const width = Math.floor(Math.random() * 100) + 50;
-      const height = Math.floor(Math.random() * 20) + 20;
-      const left = Math.floor(Math.random() * (gameAreaRect.width - width));
-
-      obstacle.style.width = width + 'px';
-      obstacle.style.height = height + 'px';
-      obstacle.style.left = left + 'px';
-      obstacle.style.top = '-' + height + 'px';
-
-      gameArea.appendChild(obstacle);
-      obstacles.push(obstacle);
-
-      // Clean up old obstacles
-      if (obstacles.length > 15) {
-        const oldObstacle = obstacles.shift();
-        oldObstacle.remove();
-      }
-    }
-
-    function createCollectible() {
-      if (!gameActive) return;
-
-      const collectible = document.createElement('div');
-      collectible.className = 'collectible';
-
-      // Random position
-      const left = Math.floor(Math.random() * (gameAreaRect.width - 20)) + 10;
-
-      // Random emoji
-      const emoji = collectibleEmojis[Math.floor(Math.random() * collectibleEmojis.length)];
-      collectible.textContent = emoji;
-
-      collectible.style.left = left + 'px';
-      collectible.style.top = '-20px';
-
-      gameArea.appendChild(collectible);
-      collectibles.push(collectible);
-
-      // Clean up old collectibles
-      if (collectibles.length > 5) {
-        const oldCollectible = collectibles.shift();
-        oldCollectible.remove();
-      }
-    }
-
-    function moveObstacles() {
-      obstacles.forEach(obstacle => {
-        const currentTop = parseFloat(obstacle.style.top);
-        obstacle.style.top = (currentTop + obstacleSpeed) + 'px';
-      });
-
-      collectibles.forEach(collectible => {
-        const currentTop = parseFloat(collectible.style.top);
-        collectible.style.top = (currentTop + obstacleSpeed) + 'px';
-      });
-    }
-
-    function checkCollisions() {
-      const playerRect = {
-        x: playerX - 15,
-        y: playerY - 15,
-        width: 30,
-        height: 30
-      };
-
-      // Check for collisions with obstacles
-      for (let i = 0; i < obstacles.length; i++) {
-        const obstacle = obstacles[i];
-        const obstacleRect = obstacle.getBoundingClientRect();
-        const gameAreaRect = gameArea.getBoundingClientRect();
-
-        const relativeRect = {
-          x: obstacleRect.left - gameAreaRect.left,
-          y: obstacleRect.top - gameAreaRect.top,
-          width: obstacleRect.width,
-          height: obstacleRect.height
-        };
-
-        if (
-          playerRect.x < relativeRect.x + relativeRect.width &&
-          playerRect.x + playerRect.width > relativeRect.x &&
-          playerRect.y < relativeRect.y + relativeRect.height &&
-          playerRect.y + playerRect.height > relativeRect.y
-        ) {
-          createExplosion(playerX, playerY);
-          return true; // Collision detected
-        }
-      }
-
-      return false;
-    }
-
-    function collectCollectibles() {
-      const playerRect = {
-        x: playerX - 15,
-        y: playerY - 15,
-        width: 30,
-        height: 30
-      };
-
-      for (let i = collectibles.length - 1; i >= 0; i--) {
-        const collectible = collectibles[i];
-        const collectibleRect = collectible.getBoundingClientRect();
-        const gameAreaRect = gameArea.getBoundingClientRect();
-
-        const relativeRect = {
-          x: collectibleRect.left - gameAreaRect.left,
-          y: collectibleRect.top - gameAreaRect.top,
-          width: collectibleRect.width,
-          height: collectibleRect.height
-        };
-
-        if (
-          playerRect.x < relativeRect.x + relativeRect.width &&
-          playerRect.x + playerRect.width > relativeRect.x &&
-          playerRect.y < relativeRect.y + relativeRect.height &&
-          playerRect.y + playerRect.height > relativeRect.y
-        ) {
-          // Collect the item
-          collectibles.splice(i, 1);
-          collectible.remove();
-
-          // Increase score and create sparkle effect
-          score += 10 * level;
-          createSparkle(relativeRect.x + relativeRect.width / 2, relativeRect.y + relativeRect.height / 2);
-          updateScore();
-
-          // Level up check
-          if (score >= level * 70) {
-            levelUp();
-          }
-        }
-      }
-    }
-
-    function createSparkle(x, y) {
-      for (let i = 0; i < 10; i++) {
-        const particle = document.createElement('div');
-        particle.className = 'particle';
-        particle.textContent = '✨';
-        particle.style.left = x + 'px';
-        particle.style.top = y + 'px';
-        particle.style.fontSize = '10px';
-
-        // Random direction
-        const angle = Math.random() * Math.PI * 2;
-        const distance = Math.random() * 30 + 10;
-        const speedX = Math.cos(angle) * 2;
-        const speedY = Math.sin(angle) * 2;
-
-        gameArea.appendChild(particle);
-
-        let posX = x;
-        let posY = y;
-
-        const animateParticle = () => {
-          posX += speedX;
-          posY += speedY;
-          particle.style.left = posX + 'px';
-          particle.style.top = posY + 'px';
-
-          if (parseFloat(getComputedStyle(particle).opacity) > 0.1) {
-            requestAnimationFrame(animateParticle);
-          } else {
-            particle.remove();
-          }
-        };
-
-        requestAnimationFrame(animateParticle);
-      }
-    }
-
-    function createExplosion(x, y) {
-      for (let i = 0; i < 20; i++) {
-        const particle = document.createElement('div');
-        particle.className = 'particle';
-        particle.textContent = '💥';
-        particle.style.left = x + 'px';
-        particle.style.top = y + 'px';
-        particle.style.fontSize = '20px';
-
-        // Random direction
-        const angle = Math.random() * Math.PI * 2;
-        const distance = Math.random() * 40 + 20;
-        const speedX = Math.cos(angle) * 4;
-        const speedY = Math.sin(angle) * 4;
-
-        gameArea.appendChild(particle);
-
-        let posX = x;
-        let posY = y;
-
-        const animateParticle = () => {
-          posX += speedX;
-          posY += speedY;
-          particle.style.left = posX + 'px';
-          particle.style.top = posY + 'px';
-
-          if (parseFloat(getComputedStyle(particle).opacity) > 0.1) {
-            requestAnimationFrame(animateParticle);
-          } else {
-            particle.remove();
-          }
-        };
-
-        requestAnimationFrame(animateParticle);
-      }
-    }
-
-    function createTrail(x, y) {
-      const particle = document.createElement('div');
-      particle.className = 'trail-particle';
-
-      const size = Math.random() * 10 + 5;
-      const colorIndex = Math.floor(Math.random() * trailColors.length);
-
-      particle.style.width = size + 'px';
-      particle.style.height = size + 'px';
-      particle.style.backgroundColor = trailColors[colorIndex];
-      particle.style.left = x + 'px';
-      particle.style.top = y + 'px';
-
-      trail.appendChild(particle);
-
-      setTimeout(() => {
-        particle.remove();
-      }, 1000);
-    }
-
-    function updateScore() {
-      scoreDisplay.textContent = `Score: ${score}`;
-    }
-
-    function updateLevel() {
-      levelDisplay.textContent = `Level: ${level}`;
-    }
-
-    function levelUp() {
-      level++;
-      updateLevel();
-
-      // Create level up effect
-      const levelUpText = document.createElement('div');
-      levelUpText.textContent = 'LEVEL UP!';
-      levelUpText.style.position = 'absolute';
-      levelUpText.style.top = '50%';
-      levelUpText.style.left = '50%';
-      levelUpText.style.transform = 'translate(-50%, -50%)';
-      levelUpText.style.color = '#ff0';
-      levelUpText.style.fontSize = '32px';
-      levelUpText.style.fontWeight = 'bold';
-      levelUpText.style.textShadow = '0 0 10px #ff0';
-      levelUpText.style.zIndex = '100';
-      levelUpText.style.opacity = '1';
-      levelUpText.style.transition = 'opacity 2s';
-
-      gameArea.appendChild(levelUpText);
-
-      // Increase difficulty
-      obstacleSpeed += 0.5;
-      if (obstacleFrequency > 500) {
-        obstacleFrequency -= 200;
-        clearInterval(obstacleTimer);
-        obstacleTimer = setInterval(createObstacle, obstacleFrequency);
-      }
-
-      if (collectibleFrequency > 1000) {
-        collectibleFrequency -= 300;
-        clearInterval(collectibleTimer);
-        collectibleTimer = setInterval(createCollectible, collectibleFrequency);
-      }
-
-      setTimeout(() => {
-        levelUpText.style.opacity = '0';
-        setTimeout(() => {
-          levelUpText.remove();
-        }, 2000);
-      }, 1000);
-    }
-
-    function endGame() {
-      gameActive = false;
-      clearInterval(gameInterval);
-      clearInterval(obstacleTimer);
-      clearInterval(collectibleTimer);
-
-      // Update high score
-      if (score > highScore) {
-        highScore = score;
-        localStorage.setItem('emojiEscapeHighScore', highScore);
-      }
-
-      // Update game over screen
-      finalScoreDisplay.textContent = `Your score: ${score}`;
-      highScoreDisplay.textContent = `High score: ${highScore}`;
-
-      // Show game over screen after a short delay
-      setTimeout(() => {
-        gameOverScreen.style.display = 'flex';
-      }, 1000);
-    }
-
-    // Responsive adjustments
-    function resizeGame() {
-      const gameAreaRect = gameArea.getBoundingClientRect();
-      // Update player position constraints
-      if (gameActive) {
-        playerX = Math.max(15, Math.min(gameAreaRect.width - 15, playerX));
-        playerY = Math.max(15, Math.min(gameAreaRect.height - 15, playerY));
-        updatePlayerPosition(playerX, playerY);
-      }
-    }
-
-    window.addEventListener('resize', resizeGame);
-  </script>
+ <div id="game-container">
+   <div id="game-area">
+     <div id="trail"></div>
+     <div id="player">?</div>
+     <div id="score-display">Score: 0</div>
+     <div id="level-display">Level: 1</div>
+   </div>
+
+   <div id="start-screen">
+     <h1>Emoji Escape</h1>
+     <p>Guide your emoji through obstacles with swipe or click!</p>
+     <div id="emoji-selector">
+       <div class="emoji-option selected">?</div>
+       <div class="emoji-option">?</div>
+       <div class="emoji-option">?</div>
+       <div class="emoji-option">?</div>
+       <div class="emoji-option">?</div>
+     </div>
+     <button id="start-button">START GAME</button>
+   </div>
+
+   <div id="game-over-screen">
+     <h1>Game Over!</h1>
+     <p id="final-score">Your score: 0</p>
+     <p id="high-score">High score: 0</p>
+     <button id="restart-button">PLAY AGAIN</button>
+   </div>
+ </div>
+
+ <script>
+   const player = document.getElementById('player');
+   const gameArea = document.getElementById('game-area');
+   const startScreen = document.getElementById('start-screen');
+   const gameOverScreen = document.getElementById('game-over-screen');
+   const scoreDisplay = document.getElementById('score-display');
+   const levelDisplay = document.getElementById('level-display');
+   const finalScoreDisplay = document.getElementById('final-score');
+   const highScoreDisplay = document.getElementById('high-score');
+   const startButton = document.getElementById('start-button');
+   const restartButton = document.getElementById('restart-button');
+   const emojiOptions = document.querySelectorAll('.emoji-option');
+   const trail = document.getElementById('trail');
+
+   let gameActive = false;
+   let gameInterval;
+   let obstacles = [];
+   let collectibles = [];
+   let playerX = 160;
+   let playerY = 400;
+   let score = 0;
+   let level = 1;
+   let highScore = localStorage.getItem('emojiEscapeHighScore') || 0;
+   let obstacleSpeed = 2;
+   let obstacleFrequency = 1500;
+   let collectibleFrequency = 3000;
+   let obstacleTimer;
+   let collectibleTimer;
+   let lastPosition = { x: 0, y: 0 };
+   let trailColors = ['#ff5e5e', '#ffbd5e', '#ffff5e', '#5eff5e', '#5e5eff', '#ff5eff'];
+
+   const collectibleEmojis = ['?', '?', '?', '?', '?', '?'];
+   const gameAreaRect = gameArea.getBoundingClientRect();
+
+   // Initialize player position
+   updatePlayerPosition(playerX, playerY);
+
+   // Event listeners
+   startButton.addEventListener('click', startGame);
+   restartButton.addEventListener('click', startGame);
+
+   emojiOptions.forEach(option => {
+     option.addEventListener('click', function() {
+       emojiOptions.forEach(opt => opt.classList.remove('selected'));
+       this.classList.add('selected');
+       player.textContent = this.textContent;
+     });
+   });
+
+   // Touch/mouse controls
+   gameArea.addEventListener('mousedown', handleInputStart);
+   gameArea.addEventListener('touchstart', e => {
+     e.preventDefault();
+     handleInputStart(e.touches[0]);
+   });
+
+   function handleInputStart(e) {
+     if (!gameActive) return;
+
+     const rect = gameArea.getBoundingClientRect();
+     const targetX = e.clientX - rect.left;
+     const targetY = e.clientY - rect.top;
+
+     movePlayer(targetX, targetY);
+
+     // Add event listeners for drag
+     document.addEventListener('mousemove', handleInputMove);
+     document.addEventListener('touchmove', e => {
+       e.preventDefault();
+       handleInputMove(e.touches[0]);
+     }, { passive: false });
+
+     document.addEventListener('mouseup', removeInputListeners);
+     document.addEventListener('touchend', removeInputListeners);
+   }
+
+   function handleInputMove(e) {
+     if (!gameActive) return;
+
+     const rect = gameArea.getBoundingClientRect();
+     const targetX = e.clientX - rect.left;
+     const targetY = e.clientY - rect.top;
+
+     movePlayer(targetX, targetY);
+   }
+
+   function removeInputListeners() {
+     document.removeEventListener('mousemove', handleInputMove);
+     document.removeEventListener('touchmove', handleInputMove);
+     document.removeEventListener('mouseup', removeInputListeners);
+     document.removeEventListener('touchend', removeInputListeners);
+   }
+
+   function movePlayer(targetX, targetY) {
+     // Add trail effect
+     if (Math.abs(targetX - playerX) > 5 || Math.abs(targetY - playerY) > 5) {
+       createTrail(playerX, playerY);
+     }
+
+     // Update player position
+     playerX = Math.max(15, Math.min(gameAreaRect.width - 15, targetX));
+     playerY = Math.max(15, Math.min(gameAreaRect.height - 15, targetY));
+     updatePlayerPosition(playerX, playerY);
+
+     // Check collision with collectibles
+     collectCollectibles();
+   }
+
+   function updatePlayerPosition(x, y) {
+     player.style.left = x + 'px';
+     player.style.top = y + 'px';
+   }
+
+   function startGame() {
+     // Reset game state
+     obstacles.forEach(obstacle => obstacle.remove());
+     collectibles.forEach(collectible => collectible.remove());
+     obstacles = [];
+     collectibles = [];
+
+     // Reset scores and level
+     score = 0;
+     level = 1;
+     updateScore();
+     updateLevel();
+
+     // Reset speed and frequency
+     obstacleSpeed = 2;
+     obstacleFrequency = 1500;
+     collectibleFrequency = 3000;
+
+     // Hide screens
+     startScreen.style.display = 'none';
+     gameOverScreen.style.display = 'none';
+
+     // Initialize player position
+     playerX = gameAreaRect.width / 2;
+     playerY = gameAreaRect.height - 80;
+     updatePlayerPosition(playerX, playerY);
+
+     // Start game loop
+     gameActive = true;
+     gameInterval = setInterval(updateGame, 16);
+     obstacleTimer = setInterval(createObstacle, obstacleFrequency);
+     collectibleTimer = setInterval(createCollectible, collectibleFrequency);
+
+     // Create initial obstacles and collectibles
+     setTimeout(createObstacle, 500);
+     setTimeout(createCollectible, 1000);
+   }
+
+   function updateGame() {
+     if (!gameActive) return;
+
+     // Move obstacles
+     moveObstacles();
+
+     // Check collisions
+     if (checkCollisions()) {
+       endGame();
+     }
+   }
+
+   function createObstacle() {
+     if (!gameActive) return;
+
+     const obstacle = document.createElement('div');
+     obstacle.className = 'obstacle';
+
+     // Random size and position
+     const width = Math.floor(Math.random() * 100) + 50;
+     const height = Math.floor(Math.random() * 20) + 20;
+     const left = Math.floor(Math.random() * (gameAreaRect.width - width));
+
+     obstacle.style.width = width + 'px';
+     obstacle.style.height = height + 'px';
+     obstacle.style.left = left + 'px';
+     obstacle.style.top = '-' + height + 'px';
+
+     gameArea.appendChild(obstacle);
+     obstacles.push(obstacle);
+
+     // Clean up old obstacles
+     if (obstacles.length > 15) {
+       const oldObstacle = obstacles.shift();
+       oldObstacle.remove();
+     }
+   }
+
+   function createCollectible() {
+     if (!gameActive) return;
+
+     const collectible = document.createElement('div');
+     collectible.className = 'collectible';
+
+     // Random position
+     const left = Math.floor(Math.random() * (gameAreaRect.width - 20)) + 10;
+
+     // Random emoji
+     const emoji = collectibleEmojis[Math.floor(Math.random() * collectibleEmojis.length)];
+     collectible.textContent = emoji;
+
+     collectible.style.left = left + 'px';
+     collectible.style.top = '-20px';
+
+     gameArea.appendChild(collectible);
+     collectibles.push(collectible);
+
+     // Clean up old collectibles
+     if (collectibles.length > 5) {
+       const oldCollectible = collectibles.shift();
+       oldCollectible.remove();
+     }
+   }
+
+   function moveObstacles() {
+     obstacles.forEach(obstacle => {
+       const currentTop = parseFloat(obstacle.style.top);
+       obstacle.style.top = (currentTop + obstacleSpeed) + 'px';
+     });
+
+     collectibles.forEach(collectible => {
+       const currentTop = parseFloat(collectible.style.top);
+       collectible.style.top = (currentTop + obstacleSpeed) + 'px';
+     });
+   }
+
+   function checkCollisions() {
+     const playerRect = {
+       x: playerX - 15,
+       y: playerY - 15,
+       width: 30,
+       height: 30
+     };
+
+     // Check for collisions with obstacles
+     for (let i = 0; i < obstacles.length; i++) {
+       const obstacle = obstacles[i];
+       const obstacleRect = obstacle.getBoundingClientRect();
+       const gameAreaRect = gameArea.getBoundingClientRect();
+
+       const relativeRect = {
+         x: obstacleRect.left - gameAreaRect.left,
+         y: obstacleRect.top - gameAreaRect.top,
+         width: obstacleRect.width,
+         height: obstacleRect.height
+       };
+
+       if (
+         playerRect.x < relativeRect.x + relativeRect.width &&
+         playerRect.x + playerRect.width > relativeRect.x &&
+         playerRect.y < relativeRect.y + relativeRect.height &&
+         playerRect.y + playerRect.height > relativeRect.y
+       ) {
+         createExplosion(playerX, playerY);
+         return true; // Collision detected
+       }
+     }
+
+     return false;
+   }
+
+   function collectCollectibles() {
+     const playerRect = {
+       x: playerX - 15,
+       y: playerY - 15,
+       width: 30,
+       height: 30
+     };
+
+     for (let i = collectibles.length - 1; i >= 0; i--) {
+       const collectible = collectibles[i];
+       const collectibleRect = collectible.getBoundingClientRect();
+       const gameAreaRect = gameArea.getBoundingClientRect();
+
+       const relativeRect = {
+         x: collectibleRect.left - gameAreaRect.left,
+         y: collectibleRect.top - gameAreaRect.top,
+         width: collectibleRect.width,
+         height: collectibleRect.height
+       };
+
+       if (
+         playerRect.x < relativeRect.x + relativeRect.width &&
+         playerRect.x + playerRect.width > relativeRect.x &&
+         playerRect.y < relativeRect.y + relativeRect.height &&
+         playerRect.y + playerRect.height > relativeRect.y
+       ) {
+         // Collect the item
+         collectibles.splice(i, 1);
+         collectible.remove();
+
+         // Increase score and create sparkle effect
+         score += 10 * level;
+         createSparkle(relativeRect.x + relativeRect.width / 2, relativeRect.y + relativeRect.height / 2);
+         updateScore();
+
+         // Level up check
+         if (score >= level * 70) {
+           levelUp();
+         }
+       }
+     }
+   }
+
+   function createSparkle(x, y) {
+     for (let i = 0; i < 10; i++) {
+       const particle = document.createElement('div');
+       particle.className = 'particle';
+       particle.textContent = '?';
+       particle.style.left = x + 'px';
+       particle.style.top = y + 'px';
+       particle.style.fontSize = '10px';
+
+       // Random direction
+       const angle = Math.random() * Math.PI * 2;
+       const distance = Math.random() * 30 + 10;
+       const speedX = Math.cos(angle) * 2;
+       const speedY = Math.sin(angle) * 2;
+
+       gameArea.appendChild(particle);
+
+       let posX = x;
+       let posY = y;
+
+       const animateParticle = () => {
+         posX += speedX;
+         posY += speedY;
+         particle.style.left = posX + 'px';
+         particle.style.top = posY + 'px';
+
+         if (parseFloat(getComputedStyle(particle).opacity) > 0.1) {
+           requestAnimationFrame(animateParticle);
+         } else {
+           particle.remove();
+         }
+       };
+
+       requestAnimationFrame(animateParticle);
+     }
+   }
+
+   function createExplosion(x, y) {
+     for (let i = 0; i < 20; i++) {
+       const particle = document.createElement('div');
+       particle.className = 'particle';
+       particle.textContent = '?';
+       particle.style.left = x + 'px';
+       particle.style.top = y + 'px';
+       particle.style.fontSize = '20px';
+
+       // Random direction
+       const angle = Math.random() * Math.PI * 2;
+       const distance = Math.random() * 40 + 20;
+       const speedX = Math.cos(angle) * 4;
+       const speedY = Math.sin(angle) * 4;
+
+       gameArea.appendChild(particle);
+
+       let posX = x;
+       let posY = y;
+
+       const animateParticle = () => {
+         posX += speedX;
+         posY += speedY;
+         particle.style.left = posX + 'px';
+         particle.style.top = posY + 'px';
+
+         if (parseFloat(getComputedStyle(particle).opacity) > 0.1) {
+           requestAnimationFrame(animateParticle);
+         } else {
+           particle.remove();
+         }
+       };
+
+       requestAnimationFrame(animateParticle);
+     }
+   }
+
+   function createTrail(x, y) {
+     const particle = document.createElement('div');
+     particle.className = 'trail-particle';
+
+     const size = Math.random() * 10 + 5;
+     const colorIndex = Math.floor(Math.random() * trailColors.length);
+
+     particle.style.width = size + 'px';
+     particle.style.height = size + 'px';
+     particle.style.backgroundColor = trailColors[colorIndex];
+     particle.style.left = x + 'px';
+     particle.style.top = y + 'px';
+
+     trail.appendChild(particle);
+
+     setTimeout(() => {
+       particle.remove();
+     }, 1000);
+   }
+
+   function updateScore() {
+     scoreDisplay.textContent = `Score: ${score}`;
+   }
+
+   function updateLevel() {
+     levelDisplay.textContent = `Level: ${level}`;
+   }
+
+   function levelUp() {
+     level++;
+     updateLevel();
+
+     // Create level up effect
+     const levelUpText = document.createElement('div');
+     levelUpText.textContent = 'LEVEL UP!';
+     levelUpText.style.position = 'absolute';
+     levelUpText.style.top = '50%';
+     levelUpText.style.left = '50%';
+     levelUpText.style.transform = 'translate(-50%, -50%)';
+     levelUpText.style.color = '#ff0';
+     levelUpText.style.fontSize = '32px';
+     levelUpText.style.fontWeight = 'bold';
+     levelUpText.style.textShadow = '0 0 10px #ff0';
+     levelUpText.style.zIndex = '100';
+     levelUpText.style.opacity = '1';
+     levelUpText.style.transition = 'opacity 2s';
+
+     gameArea.appendChild(levelUpText);
+
+     // Increase difficulty
+     obstacleSpeed += 0.5;
+     if (obstacleFrequency > 500) {
+       obstacleFrequency -= 200;
+       clearInterval(obstacleTimer);
+       obstacleTimer = setInterval(createObstacle, obstacleFrequency);
+     }
+
+     if (collectibleFrequency > 1000) {
+       collectibleFrequency -= 300;
+       clearInterval(collectibleTimer);
+       collectibleTimer = setInterval(createCollectible, collectibleFrequency);
+     }
+
+     setTimeout(() => {
+       levelUpText.style.opacity = '0';
+       setTimeout(() => {
+         levelUpText.remove();
+       }, 2000);
+     }, 1000);
+   }
+
+   function endGame() {
+     gameActive = false;
+     clearInterval(gameInterval);
+     clearInterval(obstacleTimer);
+     clearInterval(collectibleTimer);
+
+     // Update high score
+     if (score > highScore) {
+       highScore = score;
+       localStorage.setItem('emojiEscapeHighScore', highScore);
+     }
+
+     // Update game over screen
+     finalScoreDisplay.textContent = `Your score: ${score}`;
+     highScoreDisplay.textContent = `High score: ${highScore}`;
+
+     // Show game over screen after a short delay
+     setTimeout(() => {
+       gameOverScreen.style.display = 'flex';
+     }, 1000);
+   }
+
+   // Responsive adjustments
+   function resizeGame() {
+     const gameAreaRect = gameArea.getBoundingClientRect();
+     // Update player position constraints
+     if (gameActive) {
+       playerX = Math.max(15, Math.min(gameAreaRect.width - 15, playerX));
+       playerY = Math.max(15, Math.min(gameAreaRect.height - 15, playerY));
+       updatePlayerPosition(playerX, playerY);
+     }
+   }
+
+   window.addEventListener('resize', resizeGame);
+ </script>
 </body>
 </html>
 
@@ -708,119 +1567,119 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <title>Jogo da Cobrinha</title>
-    <style>
-        body {
-            display: flex; justify-content: center; align-items: center;
-            background: linear-gradient(135deg, #1e1e2f, #2a2a40);
-            margin: 0; padding: 20px; font-family: Arial, sans-serif; color: white;
-        }
-        canvas {
-            border: 5px solid #444; border-radius: 15px; box-shadow: 0 0 20px rgba(0, 0, 0, 0.5); background: #000;
-        }
-        .game-over {
-            position: absolute; font-size: 100px; color: #ff4757; text-shadow: 0 0 20px rgba(255, 71, 87, 0.8); display: none;
-        }
-        .placar {
-            position: absolute; top: 50px; left: 550px; font-size: 24px; color: white; text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
-        }
-        svg { display: none; }
-    </style>
+   <meta charset="UTF-8">
+   <title>Jogo da Cobrinha</title>
+   <style>
+       body {
+           display: flex; justify-content: center; align-items: center;
+           background: linear-gradient(135deg, #1e1e2f, #2a2a40);
+           margin: 0; padding: 20px; font-family: Arial, sans-serif; color: white;
+       }
+       canvas {
+           border: 5px solid #444; border-radius: 15px; box-shadow: 0 0 20px rgba(0, 0, 0, 0.5); background: #000;
+       }
+       .game-over {
+           position: absolute; font-size: 100px; color: #ff4757; text-shadow: 0 0 20px rgba(255, 71, 87, 0.8); display: none;
+       }
+       .placar {
+           position: absolute; top: 50px; left: 550px; font-size: 24px; color: white; text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+       }
+       svg { display: none; }
+   </style>
 </head>
 <body>
-    <canvas id="tela" width="900" height="900"></canvas>
-    <div class="game-over" id="fimJogo">GAME OVER</div>
-    <div class="placar" id="placar">Comidas: 0</div>
+   <canvas id="tela" width="900" height="900"></canvas>
+   <div class="game-over" id="fimJogo">GAME OVER</div>
+   <div class="placar" id="placar">Comidas: 0</div>
 
-    <svg id="cabeça" viewBox="0 0 20 20">
-        <circle cx="10" cy="10" r="8" fill="#32FF32"/>
-        <circle cx="7" cy="8" r="1.5" fill="#000"/>
-        <circle cx="13" cy="8" r="1.5" fill="#000"/>
-        <path d="M10 12c-1 0-2-1-2-2 0-1 1-2 2-2s2 1 2 2c0 1-1 2-2 2z" fill="#FF3232"/>
-    </svg>
+   <svg id="cabeca" viewBox="0 0 20 20">
+       <circle cx="10" cy="10" r="8" fill="#32FF32"/>
+       <circle cx="7" cy="8" r="1.5" fill="#000"/>
+       <circle cx="13" cy="8" r="1.5" fill="#000"/>
+       <path d="M10 12c-1 0-2-1-2-2 0-1 1-2 2-2s2 1 2 2c0 1-1 2-2 2z" fill="#FF3232"/>
+   </svg>
 
-    <script>
-        const tela = document.getElementById('tela'), ctx = tela.getContext('2d');
-        const fimJogo = document.getElementById('fimJogo'), placar = document.getElementById('placar');
+   <script>
+       const tela = document.getElementById('tela'), ctx = tela.getContext('2d');
+       const fimJogo = document.getElementById('fimJogo'), placar = document.getElementById('placar');
 
-        const TAM = 20, VELOCIDADE = 100, GRID = 900;
-        let cobra = [{x: 300, y: 300}], direcao = {x: TAM, y: 0}, comida = [], pontos = 0, fim = false, ultimaAtualizacao = 0;
-        const imagens = {};
+       const TAM = 20, VELOCIDADE = 100, GRID = 900;
+       let cobra = [{x: 300, y: 300}], direcao = {x: TAM, y: 0}, comida = [], pontos = 0, fim = false, ultimaAtualizacao = 0;
+       const imagens = {};
 
-        function corAleatoria() {
-            return `hsl(${Math.random() * 360}, 100%, 50%)`; // Cores vibrantes aleatórias
-        }
+       function corAleatoria() {
+           return `hsl(${Math.random() * 360}, 100%, 50%)`; // Cores vibrantes aleatorias
+       }
 
-        function novaComida() {
-            return {
-                x: Math.floor(Math.random() * (GRID / TAM)) * TAM,
-                y: Math.floor(Math.random() * (GRID / TAM)) * TAM,
-                cor: corAleatoria()
-            };
-        }
+       function novaComida() {
+           return {
+               x: Math.floor(Math.random() * (GRID / TAM)) * TAM,
+               y: Math.floor(Math.random() * (GRID / TAM)) * TAM,
+               cor: corAleatoria()
+           };
+       }
 
-        function carregarImagens() {
-            const svg = document.getElementById("cabeça");
-            const img = new Image(), dadosSVG = new XMLSerializer().serializeToString(svg);
-            const url = URL.createObjectURL(new Blob([dadosSVG], { type: "image/svg+xml" }));
-            img.onload = () => { imagens.cabeça = img; URL.revokeObjectURL(url); };
-            img.src = url;
-        }
+       function carregarImagens() {
+           const svg = document.getElementById("cabeca");
+           const img = new Image(), dadosSVG = new XMLSerializer().serializeToString(svg);
+           const url = URL.createObjectURL(new Blob([dadosSVG], { type: "image/svg+xml" }));
+           img.onload = () => { imagens.cabeca = img; URL.revokeObjectURL(url); };
+           img.src = url;
+       }
 
-        function iniciar() {
-            cobra = [{x: 300, y: 300}]; direcao = {x: TAM, y: 0}; pontos = 0; fim = false;
-            fimJogo.style.display = 'none'; comida = Array(10).fill().map(novaComida);
-        }
+       function iniciar() {
+           cobra = [{x: 300, y: 300}]; direcao = {x: TAM, y: 0}; pontos = 0; fim = false;
+           fimJogo.style.display = 'none'; comida = Array(10).fill().map(novaComida);
+       }
 
-        document.addEventListener('keydown', (e) => {
-            if (fim) return iniciar();
-            if (e.key === 'ArrowUp' && direcao.y === 0) direcao = {x: 0, y: -TAM};
-            if (e.key === 'ArrowDown' && direcao.y === 0) direcao = {x: 0, y: TAM};
-            if (e.key === 'ArrowLeft' && direcao.x === 0) direcao = {x: -TAM, y: 0};
-            if (e.key === 'ArrowRight' && direcao.x === 0) direcao = {x: TAM, y: 0};
-        });
+       document.addEventListener('keydown', (e) => {
+           if (fim) return iniciar();
+           if (e.key === 'ArrowUp' && direcao.y === 0) direcao = {x: 0, y: -TAM};
+           if (e.key === 'ArrowDown' && direcao.y === 0) direcao = {x: 0, y: TAM};
+           if (e.key === 'ArrowLeft' && direcao.x === 0) direcao = {x: -TAM, y: 0};
+           if (e.key === 'ArrowRight' && direcao.x === 0) direcao = {x: TAM, y: 0};
+       });
 
-        function atualizar() {
-            if (fim) return;
-            const novaCabeca = { x: cobra[0].x + direcao.x, y: cobra[0].y + direcao.y };
+       function atualizar() {
+           if (fim) return;
+           const novaCabeca = { x: cobra[0].x + direcao.x, y: cobra[0].y + direcao.y };
 
-            if (novaCabeca.x < 0 || novaCabeca.x >= GRID || novaCabeca.y < 0 || novaCabeca.y >= GRID ||
-                cobra.some(seg => seg.x === novaCabeca.x && seg.y === novaCabeca.y)) {
-                fim = true; fimJogo.style.display = 'block'; return;
-            }
+           if (novaCabeca.x < 0 || novaCabeca.x >= GRID || novaCabeca.y < 0 || novaCabeca.y >= GRID ||
+               cobra.some(seg => seg.x === novaCabeca.x && seg.y === novaCabeca.y)) {
+               fim = true; fimJogo.style.display = 'block'; return;
+           }
 
-            cobra.unshift(novaCabeca);
-            const index = comida.findIndex(f => f.x === novaCabeca.x && f.y === novaCabeca.y);
-            if (index !== -1) {
-                comida.splice(index, 1); comida.push(novaComida()); comida.push(novaComida()); pontos++;
-                placar.textContent = `Pontos: ${pontos}`;
-            } else cobra.pop();
-        }
+           cobra.unshift(novaCabeca);
+           const index = comida.findIndex(f => f.x === novaCabeca.x && f.y === novaCabeca.y);
+           if (index !== -1) {
+               comida.splice(index, 1); comida.push(novaComida()); comida.push(novaComida()); pontos++;
+               placar.textContent = `Pontos: ${pontos}`;
+           } else cobra.pop();
+       }
 
-        function desenhar() {
-            ctx.fillStyle = "#000"; ctx.fillRect(0, 0, GRID, GRID);
+       function desenhar() {
+           ctx.fillStyle = "#000"; ctx.fillRect(0, 0, GRID, GRID);
 
-            cobra.forEach((seg, i) => {
-                if (i === 0 && imagens.cabeça) ctx.drawImage(imagens.cabeça, seg.x, seg.y, TAM, TAM);
-                else { ctx.fillStyle = "#32FF32"; ctx.fillRect(seg.x, seg.y, TAM, TAM); }
-            });
+           cobra.forEach((seg, i) => {
+               if (i === 0 && imagens.cabeca) ctx.drawImage(imagens.cabeca, seg.x, seg.y, TAM, TAM);
+               else { ctx.fillStyle = "#32FF32"; ctx.fillRect(seg.x, seg.y, TAM, TAM); }
+           });
 
-            comida.forEach(f => {
-                ctx.fillStyle = f.cor;
-                ctx.beginPath();
-                ctx.arc(f.x + TAM / 2, f.y + TAM / 2, TAM / 2, 0, Math.PI * 2);
-                ctx.fill();
-            });
-        }
+           comida.forEach(f => {
+               ctx.fillStyle = f.cor;
+               ctx.beginPath();
+               ctx.arc(f.x + TAM / 2, f.y + TAM / 2, TAM / 2, 0, Math.PI * 2);
+               ctx.fill();
+           });
+       }
 
-        function loop(tempo) {
-            if (tempo - ultimaAtualizacao >= VELOCIDADE) { atualizar(); ultimaAtualizacao = tempo; }
-            desenhar(); requestAnimationFrame(loop);
-        }
+       function loop(tempo) {
+           if (tempo - ultimaAtualizacao >= VELOCIDADE) { atualizar(); ultimaAtualizacao = tempo; }
+           desenhar(); requestAnimationFrame(loop);
+       }
 
-        carregarImagens(); iniciar(); requestAnimationFrame(loop);
-    </script>
+       carregarImagens(); iniciar(); requestAnimationFrame(loop);
+   </script>
 </body>
 </html>
 
@@ -830,333 +1689,333 @@
 <!-- Previous styles remain the same -->
 <head>
 <style>
-    /* All previous styles remain exactly the same */
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #6366f1, #a855f7);
-      min-height: 100vh;
-      margin: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
+   /* All previous styles remain exactly the same */
+   body {
+     font-family: 'Segoe UI', sans-serif;
+     background: linear-gradient(135deg, #6366f1, #a855f7);
+     min-height: 100vh;
+     margin: 0;
+     display: flex;
+     justify-content: center;
+     align-items: center;
+   }
 
-    .container {
-      background: rgba(255, 255, 255, 0.95);
-      padding: 2rem;
-      border-radius: 1rem;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    }
+   .container {
+     background: rgba(255, 255, 255, 0.95);
+     padding: 2rem;
+     border-radius: 1rem;
+     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+   }
 
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1.5rem;
-    }
+   .header {
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     margin-bottom: 1.5rem;
+   }
 
-    .stats {
-      display: flex;
-      gap: 2rem;
-      font-size: 1.25rem;
-    }
+   .stats {
+     display: flex;
+     gap: 2rem;
+     font-size: 1.25rem;
+   }
 
-    .stat {
-      background: #f3f4f6;
-      padding: 0.5rem 1rem;
-      border-radius: 0.5rem;
-    }
+   .stat {
+     background: #f3f4f6;
+     padding: 0.5rem 1rem;
+     border-radius: 0.5rem;
+   }
 
-    .game-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
+   .game-grid {
+     display: grid;
+     grid-template-columns: repeat(4, 1fr);
+     gap: 1rem;
+     margin-bottom: 1.5rem;
+   }
 
-    .card {
-      aspect-ratio: 1;
-      font-size: 2.5rem;
-      background: #fff;
-      border: 2px solid #e5e7eb;
-      border-radius: 0.5rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: transform 0.3s ease;
-      transform-style: preserve-3d;
-    }
+   .card {
+     aspect-ratio: 1;
+     font-size: 2.5rem;
+     background: #fff;
+     border: 2px solid #e5e7eb;
+     border-radius: 0.5rem;
+     cursor: pointer;
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     transition: transform 0.3s ease;
+     transform-style: preserve-3d;
+   }
 
-    .card.flipped {
-      transform: rotateY(180deg);
-    }
+   .card.flipped {
+     transform: rotateY(180deg);
+   }
 
-    .card:hover {
-      border-color: #6366f1;
-    }
+   .card:hover {
+     border-color: #6366f1;
+   }
 
-    .card-front, .card-back {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      backface-visibility: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+   .card-front, .card-back {
+     position: absolute;
+     width: 100%;
+     height: 100%;
+     backface-visibility: hidden;
+     display: flex;
+     align-items: center;
+     justify-content: center;
+   }
 
-    .card-back {
-      background: #6366f1;
-      transform: rotateY(180deg);
-      border-radius: 0.3rem;
-    }
+   .card-back {
+     background: #6366f1;
+     transform: rotateY(180deg);
+     border-radius: 0.3rem;
+   }
 
-    button {
-      background: #6366f1;
-      color: white;
-      border: none;
-      padding: 0.75rem 1.5rem;
-      border-radius: 0.5rem;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
+   button {
+     background: #6366f1;
+     color: white;
+     border: none;
+     padding: 0.75rem 1.5rem;
+     border-radius: 0.5rem;
+     font-size: 1rem;
+     cursor: pointer;
+     transition: background-color 0.2s;
+   }
 
-    button:hover {
-      background: #4f46e5;
-    }
+   button:hover {
+     background: #4f46e5;
+   }
 
-    .game-over {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.8);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      color: white;
-      font-size: 2rem;
-      flex-direction: column;
-      gap: 1rem;
-    }
+   .game-over {
+     position: fixed;
+     top: 0;
+     left: 0;
+     right: 0;
+     bottom: 0;
+     background: rgba(0, 0, 0, 0.8);
+     display: none;
+     justify-content: center;
+     align-items: center;
+     color: white;
+     font-size: 2rem;
+     flex-direction: column;
+     gap: 1rem;
+   }
 
-    .game-over.show {
-      display: flex;
-    }
+   .game-over.show {
+     display: flex;
+   }
 
-    .preview-message {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(0, 0, 0, 0.8);
-      color: white;
-      padding: 1rem 2rem;
-      border-radius: 0.5rem;
-      font-size: 1.5rem;
-      display: none;
-    }
+   .preview-message {
+     position: fixed;
+     top: 50%;
+     left: 50%;
+     transform: translate(-50%, -50%);
+     background: rgba(0, 0, 0, 0.8);
+     color: white;
+     padding: 1rem 2rem;
+     border-radius: 0.5rem;
+     font-size: 1.5rem;
+     display: none;
+   }
 
-    .preview-message.show {
-      display: block;
-    }
+   .preview-message.show {
+     display: block;
+   }
 </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <div class="stats">
-        <div class="stat">Pontos: <span id="score">0</span></div>
-        <div class="stat">Tempo: <span id="timer">60</span>s</div>
-      </div>
-      <button id="restart">Reiniciar Jogo</button>
-    </div>
-    <div class="game-grid" id="gameGrid"></div>
-  </div>
+ <div class="container">
+   <div class="header">
+     <div class="stats">
+       <div class="stat">Pontos: <span id="score">0</span></div>
+       <div class="stat">Tempo: <span id="timer">60</span>s</div>
+     </div>
+     <button id="restart">Reiniciar Jogo</button>
+   </div>
+   <div class="game-grid" id="gameGrid"></div>
+ </div>
 
-  <div class="game-over" id="gameOver">
-    <h2>Fim de Jogo!</h2>
-    <p>Pontuação Final: <span id="finalScore">0</span></p>
-    <button onclick="restartGame()">Jogar Novamente</button>
-  </div>
+ <div class="game-over" id="gameOver">
+   <h2>Fim de Jogo!</h2>
+   <p>Pontuacao Final: <span id="finalScore">0</span></p>
+   <button onclick="restartGame()">Jogar Novamente</button>
+ </div>
 
-  <div class="preview-message" id="previewMessage">
-    Memorize as cartas!
-  </div>
+ <div class="preview-message" id="previewMessage">
+   Memorize as cartas!
+ </div>
 
-  <script>
-    const emojis = [
-      // Animais
-      '🦊', '🐼', '🦁', '🐯', '🐨', '🐸', '🐷', '🦒', '🦘', '🦥',
-      // Comidas
-      '🍕', '🍔', '🌮', '🍣', '🍜', '🥐', '🥨', '🥞', '🧇', '🥪',
-      // Esportes
-      '⚽️', '🏀', '🎾', '🏈', '⚾️', '🏸', '🏓', '🎱', '🥊', '⛸️',
-      // Flores
-      '🌸', '🌺', '🌹', '🌷', '🌻', '🌼', '💐', '🌿', '🍀', '🌵',
-      // Transportes
-      '🚗', '✈️', '🚂', '🚢', '🚲', '🛵', '🚁', '🚀', '🛸', '🚤',
-      // Clima
-      '☀️', '🌙', '⭐️', '☁️', '🌈', '❄️', '⛈️', '🌪️', '🌊', '⚡️',
-      // Frutas
-      '🍎', '🍌', '🍇', '🍊', '🍓', '🥝', '🍍', '🥭', '🍐', '🫐',
-      // Profissões
-      '👨‍⚕️', '👩‍🏫', '👨‍🍳', '👩‍🚀', '👨‍🌾', '👩‍🏭', '👨‍💻', '👩‍🔬', '👨‍🎨', '👩‍✈️',
-      // Instrumentos
-      '🎸', '🎹', '🎺', '🎻', '🥁', '🪘', '🎷', '🪗', '📯', '🎼',
-      // Animais Marinhos
-      '🐋', '🐬', '🦈', '🐟', '🐠', '🦀', '🦞', '🐙', '🦑', '🐡',
-      // Doces
-      '🍦', '🍰', '🧁', '🍪', '🍫', '🍬', '🍭', '🍮', '🍯', '🍩',
-      // Expressões
-      '😊', '🥰', '😎', '🤓', '🤯', '🥳', '😴', '🤠', '😇', '🤪'
-    ];
+ <script>
+   const emojis = [
+     // Animais
+     '?', '?', '?', '?', '?', '?', '?', '?', '?', '?',
+     // Comidas
+     '?', '?', '?', '?', '?', '?', '?', '?', '?', '?',
+     // Esportes
+     '?', '?', '?', '?', '?', '?', '?', '?', '?', '?',
+     // Flores
+     '?', '?', '?', '?', '?', '?', '?', '?', '?', '?',
+     // Transportes
+     '?', '?', '?', '?', '?', '?', '?', '?', '?', '?',
+     // Clima
+     '?', '?', '?', '?', '?', '?', '?', '?', '?', '?',
+     // Frutas
+     '?', '?', '?', '?', '?', '?', '?', '?', '?', '?',
+     // Profissoes
+     '???', '???', '???', '???', '???', '???', '???', '???', '???', '???',
+     // Instrumentos
+     '?', '?', '?', '?', '?', '?', '?', '?', '?', '?',
+     // Animais Marinhos
+     '?', '?', '?', '?', '?', '?', '?', '?', '?', '?',
+     // Doces
+     '?', '?', '?', '?', '?', '?', '?', '?', '?', '?',
+     // Expressoes
+     '?', '?', '?', '?', '?', '?', '?', '?', '?', '?'
+   ];
 
-    let flippedCards = [];
-    let matchedPairs = 0;
-    let score = 0;
-    let timeLeft = 60;
-    let gameTimer;
-    let isGameOver = false;
-    let canFlip = false;
+   let flippedCards = [];
+   let matchedPairs = 0;
+   let score = 0;
+   let timeLeft = 60;
+   let gameTimer;
+   let isGameOver = false;
+   let canFlip = false;
 
-    function shuffleArray(array) {
-      const newArray = [...array];
-      for (let i = newArray.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-      }
-      return newArray;
-    }
+   function shuffleArray(array) {
+     const newArray = [...array];
+     for (let i = newArray.length - 1; i > 0; i--) {
+       const j = Math.floor(Math.random() * (i + 1));
+       [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+     }
+     return newArray;
+   }
 
-    function createGame() {
-      const gameGrid = document.getElementById('gameGrid');
-      const selectedEmojis = shuffleArray(emojis).slice(0, 8);
-      const gameEmojis = shuffleArray([...selectedEmojis, ...selectedEmojis]);
+   function createGame() {
+     const gameGrid = document.getElementById('gameGrid');
+     const selectedEmojis = shuffleArray(emojis).slice(0, 8);
+     const gameEmojis = shuffleArray([...selectedEmojis, ...selectedEmojis]);
 
-      gameGrid.innerHTML = '';
-      gameEmojis.forEach((emoji, index) => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-          <div class="card-front"></div>
-          <div class="card-back">${emoji}</div>
-        `;
-        card.dataset.emoji = emoji;
-        card.dataset.index = index;
-        card.addEventListener('click', handleCardClick);
-        gameGrid.appendChild(card);
-      });
+     gameGrid.innerHTML = '';
+     gameEmojis.forEach((emoji, index) => {
+       const card = document.createElement('div');
+       card.className = 'card';
+       card.innerHTML = `
+         <div class="card-front"></div>
+         <div class="card-back">${emoji}</div>
+       `;
+       card.dataset.emoji = emoji;
+       card.dataset.index = index;
+       card.addEventListener('click', handleCardClick);
+       gameGrid.appendChild(card);
+     });
 
-      showPreview();
-    }
+     showPreview();
+   }
 
-    function showPreview() {
-      const previewMessage = document.getElementById('previewMessage');
-      previewMessage.classList.add('show');
+   function showPreview() {
+     const previewMessage = document.getElementById('previewMessage');
+     previewMessage.classList.add('show');
 
-      const cards = document.querySelectorAll('.card');
-      cards.forEach(card => card.classList.add('flipped'));
+     const cards = document.querySelectorAll('.card');
+     cards.forEach(card => card.classList.add('flipped'));
 
-      setTimeout(() => {
-        cards.forEach(card => card.classList.remove('flipped'));
-        previewMessage.classList.remove('show');
-        canFlip = true;
-      }, 3000);
-    }
+     setTimeout(() => {
+       cards.forEach(card => card.classList.remove('flipped'));
+       previewMessage.classList.remove('show');
+       canFlip = true;
+     }, 3000);
+   }
 
-    function handleCardClick(e) {
-      if (isGameOver || !canFlip) return;
+   function handleCardClick(e) {
+     if (isGameOver || !canFlip) return;
 
-      const card = e.currentTarget;
-      if (
-        flippedCards.length === 2 ||
-        flippedCards.includes(card) ||
-        card.classList.contains('matched')
-      ) {
-        return;
-      }
+     const card = e.currentTarget;
+     if (
+       flippedCards.length === 2 ||
+       flippedCards.includes(card) ||
+       card.classList.contains('matched')
+     ) {
+       return;
+     }
 
-      card.classList.add('flipped');
-      flippedCards.push(card);
+     card.classList.add('flipped');
+     flippedCards.push(card);
 
-      if (flippedCards.length === 2) {
-        checkMatch();
-      }
-    }
+     if (flippedCards.length === 2) {
+       checkMatch();
+     }
+   }
 
-    function checkMatch() {
-      const [card1, card2] = flippedCards;
-      const match = card1.dataset.emoji === card2.dataset.emoji;
+   function checkMatch() {
+     const [card1, card2] = flippedCards;
+     const match = card1.dataset.emoji === card2.dataset.emoji;
 
-      if (match) {
-        card1.classList.add('matched');
-        card2.classList.add('matched');
-        matchedPairs++;
-        score += 10;
-        document.getElementById('score').textContent = score;
+     if (match) {
+       card1.classList.add('matched');
+       card2.classList.add('matched');
+       matchedPairs++;
+       score += 10;
+       document.getElementById('score').textContent = score;
 
-        if (matchedPairs === 8) {
-          endGame(true);
-        }
-      } else {
-        setTimeout(() => {
-          card1.classList.remove('flipped');
-          card2.classList.remove('flipped');
-        }, 1000);
-        score = Math.max(0, score - 1);
-        document.getElementById('score').textContent = score;
-      }
+       if (matchedPairs === 8) {
+         endGame(true);
+       }
+     } else {
+       setTimeout(() => {
+         card1.classList.remove('flipped');
+         card2.classList.remove('flipped');
+       }, 1000);
+       score = Math.max(0, score - 1);
+       document.getElementById('score').textContent = score;
+     }
 
-      setTimeout(() => {
-        flippedCards = [];
-      }, 1000);
-    }
+     setTimeout(() => {
+       flippedCards = [];
+     }, 1000);
+   }
 
-    function startTimer() {
-      gameTimer = setInterval(() => {
-        timeLeft--;
-        document.getElementById('timer').textContent = timeLeft;
+   function startTimer() {
+     gameTimer = setInterval(() => {
+       timeLeft--;
+       document.getElementById('timer').textContent = timeLeft;
 
-        if (timeLeft <= 0) {
-          endGame(false);
-        }
-      }, 1000);
-    }
+       if (timeLeft <= 0) {
+         endGame(false);
+       }
+     }, 1000);
+   }
 
-    function endGame(isWin) {
-      isGameOver = true;
-      clearInterval(gameTimer);
-      document.getElementById('finalScore').textContent = score;
-      document.getElementById('gameOver').classList.add('show');
-    }
+   function endGame(isWin) {
+     isGameOver = true;
+     clearInterval(gameTimer);
+     document.getElementById('finalScore').textContent = score;
+     document.getElementById('gameOver').classList.add('show');
+   }
 
-    function restartGame() {
-      flippedCards = [];
-      matchedPairs = 0;
-      score = 0;
-      timeLeft = 60;
-      isGameOver = false;
-      canFlip = false;
+   function restartGame() {
+     flippedCards = [];
+     matchedPairs = 0;
+     score = 0;
+     timeLeft = 60;
+     isGameOver = false;
+     canFlip = false;
 
-      document.getElementById('score').textContent = score;
-      document.getElementById('timer').textContent = timeLeft;
-      document.getElementById('gameOver').classList.remove('show');
+     document.getElementById('score').textContent = score;
+     document.getElementById('timer').textContent = timeLeft;
+     document.getElementById('gameOver').classList.remove('show');
 
-      clearInterval(gameTimer);
-      createGame();
-      startTimer();
-    }
+     clearInterval(gameTimer);
+     createGame();
+     startTimer();
+   }
 
-    document.getElementById('restart').addEventListener('click', restartGame);
+   document.getElementById('restart').addEventListener('click', restartGame);
 
-    // Initialize the game
-    createGame();
-    startTimer();
-  </script>
+   // Initialize the game
+   createGame();
+   startTimer();
+ </script>
 </body>
 </html>
 
@@ -1168,7 +2027,7 @@ import math
 # Inicializa o Pygame
 pygame.init()
 
-# Configurações da Tela
+# Configuracoes da Tela
 LARGURA, ALTURA = 900, 900
 tela = pygame.display.set_mode((LARGURA, ALTURA))
 pygame.display.set_caption("Simulador de Gravidade")
@@ -1182,92 +2041,92 @@ VERMELHO = (255, 50, 50)
 CINZA = (100, 100, 100)
 AMARELO = (255, 215, 0)
 
-GRAVIDADE_MIN = 0.05  # Gravidade mínima
-GRAVIDADE_MAX = 30.0 / 10  # Gravidade máxima
+GRAVIDADE_MIN = 0.05  # Gravidade minima
+GRAVIDADE_MAX = 30.0 / 10  # Gravidade maxima
 
 cores = [AZUL, VERDE, VERMELHO, AMARELO]
 
-# Relógio para controle de FPS
+# Relogio para controle de FPS
 clock = pygame.time.Clock()
 
 # Gravidade inicial (Terra)
 selected_planet = "Terra"
 gravidade = 9.8 / 10  # Ajustado para a escala do jogo
 
-# Planetas e suas gravidades (m/s² convertidos para escala do jogo)
+# Planetas e suas gravidades (m/s2 convertidos para escala do jogo)
 planetas = {
-    "Lua": 1.6 / 10,
-    "Mercúrio": 3.7 / 10,
-    "Vênus": 8.9 / 10,
-    "Terra": 9.8 / 10,
-    "Marte": 3.7 / 10,
-    "Júpiter": 24.8 / 10,
-    "Saturno": 10.4 / 10,
-    "Urano": 8.7 / 10,
-    "Netuno": 11.2 / 10
+   "Lua": 1.6 / 10,
+   "Mercurio": 3.7 / 10,
+   "Venus": 8.9 / 10,
+   "Terra": 9.8 / 10,
+   "Marte": 3.7 / 10,
+   "Jupiter": 24.8 / 10,
+   "Saturno": 10.4 / 10,
+   "Urano": 8.7 / 10,
+   "Netuno": 11.2 / 10
 }
 
 # Classe para representar uma bola
 class Bola:
-    def __init__(self, x, y, raio, cor):
-        self.x = x
-        self.y = y
-        self.raio = raio
-        self.cor = cor
-        self.vel_x = random.uniform(-3, 3)  # Velocidade horizontal aleatória
-        self.vel_y = 0  # Velocidade vertical
-        self.restituicao = 0.8  # Quanto da energia é preservada ao quicar
+   def __init__(self, x, y, raio, cor):
+       self.x = x
+       self.y = y
+       self.raio = raio
+       self.cor = cor
+       self.vel_x = random.uniform(-3, 3)  # Velocidade horizontal aleatoria
+       self.vel_y = 0  # Velocidade vertical
+       self.restituicao = 0.8  # Quanto da energia e preservada ao quicar
 
-    def atualizar(self):
-        # Aplica a gravidade
-        self.vel_y += gravidade
-        self.x += self.vel_x
-        self.y += self.vel_y
+   def atualizar(self):
+       # Aplica a gravidade
+       self.vel_y += gravidade
+       self.x += self.vel_x
+       self.y += self.vel_y
 
-        # Se atingir o chão, quica
-        if self.y + self.raio > ALTURA:
-            self.y = ALTURA - self.raio
-            self.vel_y *= -self.restituicao  # Invertemos a direção e aplicamos amortecimento
+       # Se atingir o chao, quica
+       if self.y + self.raio > ALTURA:
+           self.y = ALTURA - self.raio
+           self.vel_y *= -self.restituicao  # Invertemos a direcao e aplicamos amortecimento
 
-        # Se atingir as laterais, inverte a velocidade X
-        if self.x - self.raio < 0 or self.x + self.raio > LARGURA:
-            self.vel_x *= -self.restituicao
+       # Se atingir as laterais, inverte a velocidade X
+       if self.x - self.raio < 0 or self.x + self.raio > LARGURA:
+           self.vel_x *= -self.restituicao
 
-    def desenhar(self, tela):
-        pygame.draw.circle(tela, self.cor, (int(self.x), int(self.y)), self.raio)
+   def desenhar(self, tela):
+       pygame.draw.circle(tela, self.cor, (int(self.x), int(self.y)), self.raio)
 
-# Verifica e resolve colisões entre bolas
+# Verifica e resolve colisoes entre bolas
 def resolver_colisoes(bolas):
-    for i in range(len(bolas)):
-        for j in range(i + 1, len(bolas)):
-            bola1, bola2 = bolas[i], bolas[j]
-            dx = bola2.x - bola1.x
-            dy = bola2.y - bola1.y
-            distancia = math.sqrt(dx**2 + dy**2)
+   for i in range(len(bolas)):
+       for j in range(i + 1, len(bolas)):
+           bola1, bola2 = bolas[i], bolas[j]
+           dx = bola2.x - bola1.x
+           dy = bola2.y - bola1.y
+           distancia = math.sqrt(dx**2 + dy**2)
 
-            if distancia < bola1.raio + bola2.raio:  # Se houver colisão
-                # Calcula o ângulo da colisão
-                angulo = math.atan2(dy, dx)
+           if distancia < bola1.raio + bola2.raio:  # Se houver colisao
+               # Calcula o angulo da colisao
+               angulo = math.atan2(dy, dx)
 
-                # Separa as bolas para evitar sobreposição
-                overlap = (bola1.raio + bola2.raio) - distancia
-                bola1.x -= math.cos(angulo) * overlap / 2
-                bola1.y -= math.sin(angulo) * overlap / 2
-                bola2.x += math.cos(angulo) * overlap / 2
-                bola2.y += math.sin(angulo) * overlap / 2
+               # Separa as bolas para evitar sobreposicao
+               overlap = (bola1.raio + bola2.raio) - distancia
+               bola1.x -= math.cos(angulo) * overlap / 2
+               bola1.y -= math.sin(angulo) * overlap / 2
+               bola2.x += math.cos(angulo) * overlap / 2
+               bola2.y += math.sin(angulo) * overlap / 2
 
-                # Velocidade após a colisão (baseado em conservação de momento)
-                vel1_proj = bola1.vel_x * math.cos(angulo) + bola1.vel_y * math.sin(angulo)
-                vel2_proj = bola2.vel_x * math.cos(angulo) + bola2.vel_y * math.sin(angulo)
+               # Velocidade apos a colisao (baseado em conservacao de momento)
+               vel1_proj = bola1.vel_x * math.cos(angulo) + bola1.vel_y * math.sin(angulo)
+               vel2_proj = bola2.vel_x * math.cos(angulo) + bola2.vel_y * math.sin(angulo)
 
-                bola1.vel_x += (vel2_proj - vel1_proj) * math.cos(angulo)
-                bola1.vel_y += (vel2_proj - vel1_proj) * math.sin(angulo)
-                bola2.vel_x += (vel1_proj - vel2_proj) * math.cos(angulo)
-                bola2.vel_y += (vel1_proj - vel2_proj) * math.sin(angulo)
+               bola1.vel_x += (vel2_proj - vel1_proj) * math.cos(angulo)
+               bola1.vel_y += (vel2_proj - vel1_proj) * math.sin(angulo)
+               bola2.vel_x += (vel1_proj - vel2_proj) * math.cos(angulo)
+               bola2.vel_y += (vel1_proj - vel2_proj) * math.sin(angulo)
 
-# Criando múltiplas bolas aleatórias
+# Criando multiplas bolas aleatorias
 def criar_bolas():
-    return [Bola(random.randint(50, LARGURA - 50), random.randint(50, 300), random.randint(10, 45), random.choice(cores)) for _ in range(10)]
+   return [Bola(random.randint(50, LARGURA - 50), random.randint(50, 300), random.randint(10, 45), random.choice(cores)) for _ in range(10)]
 
 bolas = criar_bolas()
 
@@ -1275,67 +2134,67 @@ bolas = criar_bolas()
 fonte = pygame.font.Font(None, 30)
 fonte_titulo = pygame.font.Font(None, 40)
 
-# Função para desenhar botões
+# Funcao para desenhar botoes
 def desenhar_botao(tela, texto, pos, tamanho, cor_fundo, cor_texto=BRANCO):
-    """Desenha um botão na tela com fundo, borda e texto"""
-    rect = pygame.Rect(pos[0], pos[1], tamanho[0], tamanho[1])
-    pygame.draw.rect(tela, cor_fundo, rect, border_radius=10)
+   """Desenha um botao na tela com fundo, borda e texto"""
+   rect = pygame.Rect(pos[0], pos[1], tamanho[0], tamanho[1])
+   pygame.draw.rect(tela, cor_fundo, rect, border_radius=10)
 
-    # Renderiza o texto centralizado
-    texto_render = fonte.render(texto, True, cor_texto)
-    texto_rect = texto_render.get_rect(center=rect.center)
-    tela.blit(texto_render, texto_rect)
+   # Renderiza o texto centralizado
+   texto_render = fonte.render(texto, True, cor_texto)
+   texto_rect = texto_render.get_rect(center=rect.center)
+   tela.blit(texto_render, texto_rect)
 
-    return rect
+   return rect
 
 # Loop do jogo
 rodando = True
 while rodando:
-    tela.fill(PRETO)
+   tela.fill(PRETO)
 
-    # Captura eventos
-    for evento in pygame.event.get():
-        if evento.type == pygame.QUIT:
-            rodando = False
-        elif evento.type == pygame.MOUSEBUTTONDOWN:
-            x, y = evento.pos
+   # Captura eventos
+   for evento in pygame.event.get():
+       if evento.type == pygame.QUIT:
+           rodando = False
+       elif evento.type == pygame.MOUSEBUTTONDOWN:
+           x, y = evento.pos
 
-            # Botão "Jogar de Novo"
-            if botao_reset.collidepoint(x, y):
-                bolas = criar_bolas()  # Reseta as bolas
+           # Botao "Jogar de Novo"
+           if botao_reset.collidepoint(x, y):
+               bolas = criar_bolas()  # Reseta as bolas
 
-            # Botões "Planetas"
-            for i, (planeta, g) in enumerate(planetas.items()):
-                if botoes_planetas[i].collidepoint(x, y):
-                    gravidade = g  # Set gravity
-                    selected_planet = planeta  # Update selected planet
-                    bolas = criar_bolas()  # Reset balls
+           # Botoes "Planetas"
+           for i, (planeta, g) in enumerate(planetas.items()):
+               if botoes_planetas[i].collidepoint(x, y):
+                   gravidade = g  # Set gravity
+                   selected_planet = planeta  # Update selected planet
+                   bolas = criar_bolas()  # Reset balls
 
-    # Atualiza e resolve colisões entre bolas
-    for bola in bolas:
-        bola.atualizar()
-    resolver_colisoes(bolas)
+   # Atualiza e resolve colisoes entre bolas
+   for bola in bolas:
+       bola.atualizar()
+   resolver_colisoes(bolas)
 
-    # Desenha as bolas
-    for bola in bolas:
-        bola.desenhar(tela)
+   # Desenha as bolas
+   for bola in bolas:
+       bola.desenhar(tela)
 
-    # Botão de reinício
-    botao_reset = desenhar_botao(tela, "Jogar de Novo", (LARGURA - 160, 20), (160, 40), VERMELHO)
+   # Botao de reinicio
+   botao_reset = desenhar_botao(tela, "Jogar de Novo", (LARGURA - 160, 20), (160, 40), VERMELHO)
 
-    # Título "Planetas"
-    texto_planetas = fonte_titulo.render("Escolha um planeta:", True, BRANCO)
-    tela.blit(texto_planetas, (50, 70))
+   # Titulo "Planetas"
+   texto_planetas = fonte_titulo.render("Escolha um planeta:", True, BRANCO)
+   tela.blit(texto_planetas, (50, 70))
 
-    # Draw planet buttons with correct highlighting
-    botoes_planetas = []
-    for i, (planeta, g) in enumerate(planetas.items()):
-        cor_botao = VERDE if planeta == selected_planet else AZUL  # Highlight selected planet
-        botao = desenhar_botao(tela, planeta, (50 + (i % 4) * 190, 110 + (i // 4) * 50), (180, 40), cor_botao)
-        botoes_planetas.append(botao)
+   # Draw planet buttons with correct highlighting
+   botoes_planetas = []
+   for i, (planeta, g) in enumerate(planetas.items()):
+       cor_botao = VERDE if planeta == selected_planet else AZUL  # Highlight selected planet
+       botao = desenhar_botao(tela, planeta, (50 + (i % 4) * 190, 110 + (i // 4) * 50), (180, 40), cor_botao)
+       botoes_planetas.append(botao)
 
-    pygame.display.flip()
-    clock.tick(60)
+   pygame.display.flip()
+   clock.tick(60)
 
 pygame.quit()
 
@@ -1352,93 +2211,93 @@ velocidade = 3
 FUNDO, CORES = "#000000", ["#FF3232", "#32FF32", "#3232FF", "#FFFF32", "#FF32FF"]
 
 FORMAS = [
-    [[1, 1, 1], [0, 1, 0]],  # T
-    [[1, 1, 1, 1]],           # I
-    [[1, 1], [1, 1]],         # O
-    [[1, 1, 0], [0, 1, 1]],   # Z
-    [[0, 1, 1], [1, 1, 0]],   # S
-    [[1, 1, 0], [1, 1]],      # L
-    [[0, 1, 1], [1, 1]]       # J
+   [[1, 1, 1], [0, 1, 0]],  # T
+   [[1, 1, 1, 1]],           # I
+   [[1, 1], [1, 1]],         # O
+   [[1, 1, 0], [0, 1, 1]],   # Z
+   [[0, 1, 1], [1, 1, 0]],   # S
+   [[1, 1, 0], [1, 1]],      # L
+   [[0, 1, 1], [1, 1]]       # J
 ]
 
 grade = [[0] * COLUNAS for _ in range(LINHAS)]
 
 class Bloco:
-    def __init__(self):
-        self.forma = random.choice(FORMAS)
-        self.cor = pygame.Color(random.choice(CORES))
-        self.x, self.y = COLUNAS // 2 - len(self.forma[0]) // 2, 0
+   def __init__(self):
+       self.forma = random.choice(FORMAS)
+       self.cor = pygame.Color(random.choice(CORES))
+       self.x, self.y = COLUNAS // 2 - len(self.forma[0]) // 2, 0
 
-    def girar(self):
-        nova_forma = list(zip(*self.forma[::-1]))
-        if not self.colisao(0, 0, nova_forma):
-            self.forma = nova_forma
+   def girar(self):
+       nova_forma = list(zip(*self.forma[::-1]))
+       if not self.colisao(0, 0, nova_forma):
+           self.forma = nova_forma
 
-    def mover(self, dx, dy):
-        if not self.colisao(dx, dy):
-            self.x += dx
-            self.y += dy
-        elif dy:
-            for i, linha in enumerate(self.forma):
-                for j, valor in enumerate(linha):
-                    if valor:
-                        grade[self.y + i][self.x + j] = self.cor
-            return False
-        return True
+   def mover(self, dx, dy):
+       if not self.colisao(dx, dy):
+           self.x += dx
+           self.y += dy
+       elif dy:
+           for i, linha in enumerate(self.forma):
+               for j, valor in enumerate(linha):
+                   if valor:
+                       grade[self.y + i][self.x + j] = self.cor
+           return False
+       return True
 
-    def colisao(self, dx, dy, forma=None):
-        forma = forma or self.forma
-        for i, linha in enumerate(forma):
-            for j, valor in enumerate(linha):
-                if valor:
-                    nx, ny = self.x + j + dx, self.y + i + dy
-                    if nx < 0 or nx >= COLUNAS or ny >= LINHAS or (ny >= 0 and grade[ny][nx]):
-                        return True
-        return False
+   def colisao(self, dx, dy, forma=None):
+       forma = forma or self.forma
+       for i, linha in enumerate(forma):
+           for j, valor in enumerate(linha):
+               if valor:
+                   nx, ny = self.x + j + dx, self.y + i + dy
+                   if nx < 0 or nx >= COLUNAS or ny >= LINHAS or (ny >= 0 and grade[ny][nx]):
+                       return True
+       return False
 
 def limpar_linhas():
-    global grade
-    grade = [linha for linha in grade if any(celula == 0 for celula in linha)]
-    while len(grade) < LINHAS:
-        grade.insert(0, [0] * COLUNAS)
+   global grade
+   grade = [linha for linha in grade if any(celula == 0 for celula in linha)]
+   while len(grade) < LINHAS:
+       grade.insert(0, [0] * COLUNAS)
 
 bloco = Bloco()
 rodando, tempo_queda = True, 0
 
 while rodando:
-    tela.fill(FUNDO)
-    for evento in pygame.event.get():
-        if evento.type == pygame.QUIT:
-            rodando = False
-        elif evento.type == pygame.KEYDOWN:
-            if evento.key == pygame.K_LEFT:
-                bloco.mover(-1, 0)
-            if evento.key == pygame.K_RIGHT:
-                bloco.mover(1, 0)
-            if evento.key == pygame.K_DOWN:
-                bloco.mover(0, 1)
-            if evento.key == pygame.K_UP:
-                bloco.girar()
+   tela.fill(FUNDO)
+   for evento in pygame.event.get():
+       if evento.type == pygame.QUIT:
+           rodando = False
+       elif evento.type == pygame.KEYDOWN:
+           if evento.key == pygame.K_LEFT:
+               bloco.mover(-1, 0)
+           if evento.key == pygame.K_RIGHT:
+               bloco.mover(1, 0)
+           if evento.key == pygame.K_DOWN:
+               bloco.mover(0, 1)
+           if evento.key == pygame.K_UP:
+               bloco.girar()
 
-    tempo_queda += 1
-    if tempo_queda > 60 // velocidade:
-        if not bloco.mover(0, 1):
-            limpar_linhas()
-            bloco = Bloco()
-        tempo_queda = 0
+   tempo_queda += 1
+   if tempo_queda > 60 // velocidade:
+       if not bloco.mover(0, 1):
+           limpar_linhas()
+           bloco = Bloco()
+       tempo_queda = 0
 
-    for y, linha in enumerate(grade):
-        for x, cor in enumerate(linha):
-            if cor:
-                pygame.draw.rect(tela, cor, (x * TAMANHO, y * TAMANHO, TAMANHO, TAMANHO), border_radius=5)
+   for y, linha in enumerate(grade):
+       for x, cor in enumerate(linha):
+           if cor:
+               pygame.draw.rect(tela, cor, (x * TAMANHO, y * TAMANHO, TAMANHO, TAMANHO), border_radius=5)
 
-    for i, linha in enumerate(bloco.forma):
-        for j, valor in enumerate(linha):
-            if valor:
-                pygame.draw.rect(tela, bloco.cor, ((bloco.x + j) * TAMANHO, (bloco.y + i) * TAMANHO, TAMANHO, TAMANHO), border_radius=5)
+   for i, linha in enumerate(bloco.forma):
+       for j, valor in enumerate(linha):
+           if valor:
+               pygame.draw.rect(tela, bloco.cor, ((bloco.x + j) * TAMANHO, (bloco.y + i) * TAMANHO, TAMANHO, TAMANHO), border_radius=5)
 
-    pygame.display.flip()
-    relogio.tick(60)
+   pygame.display.flip()
+   relogio.tick(60)
 
 pygame.quit()
 
@@ -1452,16 +2311,16 @@ screen.bgcolor("black")
 screen.tracer(0)
 
 def criar_estrelas(num_estrelas):
-    estrelas = []
-    for _ in range(num_estrelas):
-        estrela = turtle.Turtle()
-        estrela.shape("circle")
-        estrela.color("white")
-        estrela.shapesize(random.uniform(0.05, 0.15))
-        estrela.penup()
-        estrela.goto(random.randint(-800, 800), random.randint(-400, 400))
-        estrelas.append(estrela)
-    return estrelas
+   estrelas = []
+   for _ in range(num_estrelas):
+       estrela = turtle.Turtle()
+       estrela.shape("circle")
+       estrela.color("white")
+       estrela.shapesize(random.uniform(0.05, 0.15))
+       estrela.penup()
+       estrela.goto(random.randint(-800, 800), random.randint(-400, 400))
+       estrelas.append(estrela)
+   return estrelas
 
 criar_estrelas(300)
 
@@ -1471,40 +2330,40 @@ sun.color("#FFD700")
 sun.shapesize(2)
 
 planets = [
-    ("Mercúrio", "#8B8B83", 0.4, 50, 2),
-    ("Vênus", "#E6B800", 0.6, 80, 1.5),
-    ("Terra", "#0077BE", 0.8, 120, 1.2),
-    ("Marte", "#FF4500", 0.7, 160, 1),
-    ("Júpiter", "#D2B48C", 1.5, 220, 0.8),
-    ("Saturno", "#F4A460", 1.3, 280, 0.6),
-    ("Urano", "#40E0D0", 1.1, 340, 0.5),
-    ("Netuno", "#0000FF", 1.0, 400, 0.4)
+   ("Mercurio", "#8B8B83", 0.4, 50, 2),
+   ("Venus", "#E6B800", 0.6, 80, 1.5),
+   ("Terra", "#0077BE", 0.8, 120, 1.2),
+   ("Marte", "#FF4500", 0.7, 160, 1),
+   ("Jupiter", "#D2B48C", 1.5, 220, 0.8),
+   ("Saturno", "#F4A460", 1.3, 280, 0.6),
+   ("Urano", "#40E0D0", 1.1, 340, 0.5),
+   ("Netuno", "#0000FF", 1.0, 400, 0.4)
 ]
 
 planet_turtles = []
 for planet in planets:
-    name, color, size, distance, speed = planet
-    p = turtle.Turtle()
-    p.shape("circle")
-    p.color(color)
-    p.shapesize(size)
-    p.penup()
-    p.goto(distance, 0)
-    p.pendown()
-    planet_turtles.append((p, distance, speed, 0))
+   name, color, size, distance, speed = planet
+   p = turtle.Turtle()
+   p.shape("circle")
+   p.color(color)
+   p.shapesize(size)
+   p.penup()
+   p.goto(distance, 0)
+   p.pendown()
+   planet_turtles.append((p, distance, speed, 0))
 
 def move_planets():
-    for planet in planet_turtles:
-        p, distance, speed, angle = planet
-        x = distance * math.cos(math.radians(angle))
-        y = distance * math.sin(math.radians(angle))
-        p.goto(x, y)
-        planet_turtles[planet_turtles.index(planet)] = (p, distance, speed, angle + speed)
+   for planet in planet_turtles:
+       p, distance, speed, angle = planet
+       x = distance * math.cos(math.radians(angle))
+       y = distance * math.sin(math.radians(angle))
+       p.goto(x, y)
+       planet_turtles[planet_turtles.index(planet)] = (p, distance, speed, angle + speed)
 
 while True:
-    screen.update()
-    move_planets()
-    turtle.time.sleep(0.03)
+   screen.update()
+   move_planets()
+   turtle.time.sleep(0.03)
 
 [aquario.py]
 import turtle
@@ -1515,69 +2374,69 @@ screen.bgcolor("lightblue")
 screen.setup(width=1400, height=900)
 
 def create_fish_shape():
-    turtle.begin_poly()
-    turtle.forward(30)
-    turtle.left(120)
-    turtle.forward(30)
-    turtle.left(120)
-    turtle.forward(30)
-    turtle.left(120)
-    turtle.end_poly()
-    body = turtle.get_poly()
+   turtle.begin_poly()
+   turtle.forward(30)
+   turtle.left(120)
+   turtle.forward(30)
+   turtle.left(120)
+   turtle.forward(30)
+   turtle.left(120)
+   turtle.end_poly()
+   body = turtle.get_poly()
 
-    turtle.begin_poly()
-    turtle.forward(30)
-    turtle.right(120)
-    turtle.forward(30)
-    turtle.right(120)
-    turtle.forward(30)
-    turtle.right(120)
-    turtle.end_poly()
-    tail = turtle.get_poly()
+   turtle.begin_poly()
+   turtle.forward(30)
+   turtle.right(120)
+   turtle.forward(30)
+   turtle.right(120)
+   turtle.forward(30)
+   turtle.right(120)
+   turtle.end_poly()
+   tail = turtle.get_poly()
 
-    screen.addshape("fish_body", body)
-    screen.addshape("fish_tail", tail)
+   screen.addshape("fish_body", body)
+   screen.addshape("fish_tail", tail)
 
 def create_fish():
 
-    fish_color = random.choice(["coral", "gold", "firebrick",
-                                "magenta", "green", "red"])
-    body = turtle.Turtle()
-    body.shape("fish_body")
-    body.color(fish_color)
-    body.penup()
-    body.speed(0)
-    body.setpos(random.randint(-380, 380), random.randint(-280, 280))
-    body.setheading(random.randint(0, 360))
+   fish_color = random.choice(["coral", "gold", "firebrick",
+                               "magenta", "green", "red"])
+   body = turtle.Turtle()
+   body.shape("fish_body")
+   body.color(fish_color)
+   body.penup()
+   body.speed(0)
+   body.setpos(random.randint(-380, 380), random.randint(-280, 280))
+   body.setheading(random.randint(0, 360))
 
-    tail = turtle.Turtle()
-    tail.shape("fish_tail")
-    tail.color(fish_color)
-    tail.penup()
-    tail.speed(0)
-    tail.setpos(body.pos())
-    tail.setheading(body.heading())
+   tail = turtle.Turtle()
+   tail.shape("fish_tail")
+   tail.color(fish_color)
+   tail.penup()
+   tail.speed(0)
+   tail.setpos(body.pos())
+   tail.setheading(body.heading())
 
-    return body, tail
+   return body, tail
 
 create_fish_shape()
 
 peixes = [create_fish() for _ in range(30)]
 
 while True:
-    for body, tail in peixes:
-        if random.random() < 0.1:
-            turn = random.randint(-70, 70)
-            body.left(turn)
-            tail.left(turn)
+   for body, tail in peixes:
+       if random.random() < 0.1:
+           turn = random.randint(-70, 70)
+           body.left(turn)
+           tail.left(turn)
 
-        body.forward(10)
-        tail.forward(10)
+       body.forward(10)
+       tail.forward(10)
 
-        x, y = body.pos()
-        if abs(x) > 700 or abs(y) > 450:
-            body.setheading(body.heading() + 90)
-            tail.setheading(tail.heading() + 90)
+       x, y = body.pos()
+       if abs(x) > 700 or abs(y) > 450:
+           body.setheading(body.heading() + 90)
+           tail.setheading(tail.heading() + 90)
 
 
 [relogio.py]
@@ -1587,53 +2446,53 @@ from typing import Dict, List
 
 CURSOR_UP = '\033[A'
 digits = {
-    '0': '  oooo   o    o o      o o      o  o    o   oooo  ',
-    '1': '   o    oo     o     o     o     o     ooo  ',
-    '2': ' oooooo o      o      o    o    o  o     ooooooo ',
-    '3': ' oooooo        o   oooo        o        o  oooooo ',
-    '4': 'o      o o      o  ooooooo        o        o        o',
-    '5': 'ooooooo o        ooooooo        o        o ooooooo ',
-    '6': ' oooooo o        o ooooo o      o o      o  oooooo ',
-    '7': 'ooooooo       o      o     o      o     o      o  ',
-    '8': ' oooooo o      o  oooooo o      o o      o  oooooo ',
-    '9': ' oooooo o      o  ooooooo        o        o  oooooo ',
-    ':': '       o         o         '
+   '0': '  oooo   o    o o      o o      o  o    o   oooo  ',
+   '1': '   o    oo     o     o     o     o     ooo  ',
+   '2': ' oooooo o      o      o    o    o  o     ooooooo ',
+   '3': ' oooooo        o   oooo        o        o  oooooo ',
+   '4': 'o      o o      o  ooooooo        o        o        o',
+   '5': 'ooooooo o        ooooooo        o        o ooooooo ',
+   '6': ' oooooo o        o ooooo o      o o      o  oooooo ',
+   '7': 'ooooooo       o      o     o      o     o      o  ',
+   '8': ' oooooo o      o  oooooo o      o o      o  oooooo ',
+   '9': ' oooooo o      o  ooooooo        o        o  oooooo ',
+   ':': '       o         o         '
 }
 
 def get_time_rows(time_str: str) -> List[str]:
-    """Generate the rows for the current time."""
-    rows = []
-    for row in range(6):
-        current_row = '  '
-        for char in time_str:
-            current_row += digits[char][row] + '  '  # Increase spacing
-        rows.append(current_row)
-    return rows
+   """Generate the rows for the current time."""
+   rows = []
+   for row in range(6):
+       current_row = '  '
+       for char in time_str:
+           current_row += digits[char][row] + '  '  # Increase spacing
+       rows.append(current_row)
+   return rows
 
 # Initial setup
 prev_time = ''
 first_run = True
 
 while True:
-    current_time = time.strftime("%H:%M:%S")
+   current_time = time.strftime("%H:%M:%S")
 
-    # Only update if time has changed
-    if current_time != prev_time:
-        time_rows = get_time_rows(current_time)
+   # Only update if time has changed
+   if current_time != prev_time:
+       time_rows = get_time_rows(current_time)
 
-        # Move cursor up to overwrite previous output
-        if not first_run:
-            for _ in range(6):
-                print(CURSOR_UP, end='')
+       # Move cursor up to overwrite previous output
+       if not first_run:
+           for _ in range(6):
+               print(CURSOR_UP, end='')
 
-        # Print new time
-        for row in time_rows:
-            print(row)
+       # Print new time
+       for row in time_rows:
+           print(row)
 
-        prev_time = current_time
-        first_run = False
+       prev_time = current_time
+       first_run = False
 
-    time.sleep(0.1)
+   time.sleep(0.1)
 
 [relogio_analogico.py]
 import pygame
@@ -1643,10 +2502,10 @@ import datetime
 # Inicializa o Pygame
 pygame.init()
 
-# Configurações do relógio
+# Configuracoes do relogio
 LARGURA, ALTURA = 500, 500
 CENTRO = (LARGURA // 2, ALTURA // 2)
-RAIO = 200  # Raio do relógio
+RAIO = 200  # Raio do relogio
 COR_FUNDO = (20, 20, 30)  # Azul escuro elegante
 COR_BORDA = (240, 240, 240)  # Borda branca
 COR_NUMEROS = (200, 200, 200)  # Cinza claro
@@ -1654,61 +2513,61 @@ COR_PONTEIRO_H = (255, 100, 100)  # Vermelho suave
 COR_PONTEIRO_M = (100, 255, 100)  # Verde claro
 COR_PONTEIRO_S = (100, 100, 255)  # Azul claro
 
-# Criação da tela
+# Criacao da tela
 tela = pygame.display.set_mode((LARGURA, ALTURA))
-pygame.display.set_caption("Relógio Analógico Minimalista")
+pygame.display.set_caption("Relogio Analogico Minimalista")
 clock = pygame.time.Clock()
 
-# Função para desenhar ponteiros
+# Funcao para desenhar ponteiros
 def desenha_ponteiro(tela, angulo, comprimento, cor, largura=4):
-    """Desenha um ponteiro do relógio."""
-    angulo_rad = math.radians(angulo - 90)  # Ajusta o ângulo para começar do topo
-    ponta_x = CENTRO[0] + comprimento * math.cos(angulo_rad)
-    ponta_y = CENTRO[1] + comprimento * math.sin(angulo_rad)
-    pygame.draw.line(tela, cor, CENTRO, (ponta_x, ponta_y), largura)
+   """Desenha um ponteiro do relogio."""
+   angulo_rad = math.radians(angulo - 90)  # Ajusta o angulo para comecar do topo
+   ponta_x = CENTRO[0] + comprimento * math.cos(angulo_rad)
+   ponta_y = CENTRO[1] + comprimento * math.sin(angulo_rad)
+   pygame.draw.line(tela, cor, CENTRO, (ponta_x, ponta_y), largura)
 
-# Função principal do jogo
+# Funcao principal do jogo
 rodando = True
 while rodando:
-    tela.fill(COR_FUNDO)
+   tela.fill(COR_FUNDO)
 
-    # Eventos do Pygame
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            rodando = False
+   # Eventos do Pygame
+   for event in pygame.event.get():
+       if event.type == pygame.QUIT:
+           rodando = False
 
-    # Obtém o horário atual
-    agora = datetime.datetime.now()
-    segundos = agora.second
-    minutos = agora.minute + segundos / 60  # Minutos suaves
-    horas = agora.hour % 12 + minutos / 60  # Horas suaves
+   # Obtem o horario atual
+   agora = datetime.datetime.now()
+   segundos = agora.second
+   minutos = agora.minute + segundos / 60  # Minutos suaves
+   horas = agora.hour % 12 + minutos / 60  # Horas suaves
 
-    # Converte para ângulos (360° para 60 unidades)
-    ang_h = horas * 30  # 360°/12h = 30° por hora
-    ang_m = minutos * 6  # 360°/60min = 6° por minuto
-    ang_s = segundos * 6  # 360°/60s = 6° por segundo
+   # Converte para angulos (360? para 60 unidades)
+   ang_h = horas * 30  # 360?/12h = 30? por hora
+   ang_m = minutos * 6  # 360?/60min = 6? por minuto
+   ang_s = segundos * 6  # 360?/60s = 6? por segundo
 
-    # Desenha o círculo do relógio
-    pygame.draw.circle(tela, COR_BORDA, CENTRO, RAIO, 8)  # Contorno do relógio
+   # Desenha o circulo do relogio
+   pygame.draw.circle(tela, COR_BORDA, CENTRO, RAIO, 8)  # Contorno do relogio
 
-    # Desenha os números do relógio
-    for i in range(1, 13):
-        ang_num = math.radians(i * 30 - 90)
-        num_x = CENTRO[0] + (RAIO - 30) * math.cos(ang_num)
-        num_y = CENTRO[1] + (RAIO - 30) * math.sin(ang_num)
-        fonte = pygame.font.Font(None, 40)
-        texto = fonte.render(str(i), True, COR_NUMEROS)
-        tela.blit(texto, (num_x - 10, num_y - 15))
+   # Desenha os numeros do relogio
+   for i in range(1, 13):
+       ang_num = math.radians(i * 30 - 90)
+       num_x = CENTRO[0] + (RAIO - 30) * math.cos(ang_num)
+       num_y = CENTRO[1] + (RAIO - 30) * math.sin(ang_num)
+       fonte = pygame.font.Font(None, 40)
+       texto = fonte.render(str(i), True, COR_NUMEROS)
+       tela.blit(texto, (num_x - 10, num_y - 15))
 
-    # Desenha os ponteiros
-    desenha_ponteiro(tela, ang_h, RAIO * 0.5, COR_PONTEIRO_H, 8)  # Horas
-    desenha_ponteiro(tela, ang_m, RAIO * 0.7, COR_PONTEIRO_M, 6)  # Minutos
-    desenha_ponteiro(tela, ang_s, RAIO * 0.9, COR_PONTEIRO_S, 2)  # Segundos
+   # Desenha os ponteiros
+   desenha_ponteiro(tela, ang_h, RAIO * 0.5, COR_PONTEIRO_H, 8)  # Horas
+   desenha_ponteiro(tela, ang_m, RAIO * 0.7, COR_PONTEIRO_M, 6)  # Minutos
+   desenha_ponteiro(tela, ang_s, RAIO * 0.9, COR_PONTEIRO_S, 2)  # Segundos
 
-    # Desenha o centro do relógio
-    pygame.draw.circle(tela, (255, 255, 255), CENTRO, 8)  # Pequeno círculo no centro
+   # Desenha o centro do relogio
+   pygame.draw.circle(tela, (255, 255, 255), CENTRO, 8)  # Pequeno circulo no centro
 
-    pygame.display.flip()
-    clock.tick(30)  # Suaviza a animação
+   pygame.display.flip()
+   clock.tick(30)  # Suaviza a animacao
 
 pygame.quit()

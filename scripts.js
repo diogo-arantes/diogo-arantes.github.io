@@ -32,7 +32,11 @@ document.querySelectorAll(".faq-question").forEach(button => {
 // Function to parse the snippets from the file
 function parseSnippets(data) {
     const snippets = [];
-    const lines = data.split('\n');
+
+    // Normalize line endings to \n
+    const normalizedData = data.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const lines = normalizedData.split('\n');
+
     let currentSnippet = null;
 
     lines.forEach(line => {
@@ -42,7 +46,7 @@ function parseSnippets(data) {
                 snippets.push(currentSnippet); // Save the previous snippet
             }
             currentSnippet = {
-                title: line.slice(1, -1), // Remove brackets
+                title: line.slice(1, -1).trim(), // Remove brackets and trim spaces
                 code: ''
             };
         } else if (currentSnippet) {
@@ -59,6 +63,7 @@ function parseSnippets(data) {
     console.log('All snippets:', snippets); // Debugging
     return snippets;
 }
+
 
 // Function to create code boxes dynamically
 function createCodeBoxes(snippets) {
@@ -113,6 +118,15 @@ function createCodeBoxes(snippets) {
         downloadButton.innerText = 'Baixar Código';
         downloadButton.onclick = () => downloadCode(snippet.title, codeElement);
         terminal.appendChild(downloadButton);
+
+        // **Enable the "Run Code" button only if the file has .html extension**
+        if (snippet.title.toLowerCase().endsWith('.html')) {
+            const runCodeButton = document.createElement('button');
+            runCodeButton.className = 'run-btn';
+            runCodeButton.innerText = 'Executar Código';
+            runCodeButton.onclick = () => runSnippetInNewTab(snippet.code);
+            terminal.appendChild(runCodeButton);
+        }
 
         // Add click event to open/close snippet
         snippetTitle.addEventListener('click', () => {
@@ -169,13 +183,32 @@ function copyCode(codeElement) {
         .catch(() => console.log('Failed to copy code.'));
 }
 
+function runSnippetInNewTab(code) {
+    // Create a new HTML document with the code
+    const htmlContent = `
+        <html>
+        <head>
+            <title>Code Execution</title>
+        </head>
+        <body>
+            ${code}
+        </body>
+        </html>
+    `;
+
+    // Convert HTML content into a Blob
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+
+    // Open the new tab with the generated URL
+    window.open(url, '_blank');
+}
+
 document.addEventListener("DOMContentLoaded", function () {
-    fetch('codes.txt')
+    fetch('https://hotflame.com.br/codes.txt')
         .then(response => response.text())
         .then(data => {
-            console.log('Fetched data:', data); // Debugging
             const snippets = parseSnippets(data);
-            console.log('Parsed snippets:', snippets); // Debugging
             createCodeBoxes(snippets);
         })
         .catch(error => console.error('Error loading codes:', error));
