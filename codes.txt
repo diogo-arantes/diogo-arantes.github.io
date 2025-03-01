@@ -122,7 +122,7 @@
         <div id="game-over-screen" style="display: none;">
             <h1>GAME OVER</h1>
             <div id="game-over-score">Score: 0</div>
-            <button id="restart-button">TRY AGAIN</button>
+            <button id="restart-button">VAI TENTAR NEH</button>
         </div>
     </div>
 
@@ -147,19 +147,20 @@
         let score = 0;
         let shipY = canvas.height / 2;
         let shipVelocity = 0;
-        let obstacleSpeed = 1.5;
+        let obstacleSpeed = .5;
         let obstacles = [];
         let groundLevel = canvas.height * 0.8;
         let ceilingLevel = canvas.height * 0.2;
         let lastObstacleTime = 0;
         let gameTime = 0;
+        let isExploding = false;
         let shipFlicker = false;
         let flickerCount = 0;
         let shipXVelocity = 0; // Horizontal velocity
         const shipAcceleration = 0.3; // How fast the ship moves
         const shipFriction = 0.9; // Friction effect to smooth movement
 
-        let lives = 3; // Ship starts with 3 lives
+        let lives = 5; // Ship starts with 3 lives
         let isHit = false; // To track ship blinking effect
         let hitTimer = 0;  // Timer for blinking animation
 
@@ -287,6 +288,40 @@
             bgReady = true;
         }
 
+        const explosionParticles = [];
+
+        function createExplosion(x, y) {
+            for (let i = 0; i < 40; i++) { // More particles for a bigger explosion
+                explosionParticles.push({
+                    x: x,
+                    y: y,
+                    size: 4 + Math.random() * 6,
+                    speedX: (Math.random() - 0.5) * 8,
+                    speedY: (Math.random() - 0.5) * 8,
+                    life: 40 + Math.random() * 20,
+                    color: `rgba(255, ${50 + Math.random() * 150}, 0, 1)` // Red-Orange explosion
+                });
+            }
+        }
+
+        function updateExplosion() {
+            for (let i = explosionParticles.length - 1; i >= 0; i--) {
+                let p = explosionParticles[i];
+                p.x += p.speedX;
+                p.y += p.speedY;
+                p.life--;
+                if (p.life <= 0) explosionParticles.splice(i, 1); // Remove finished particles
+            }
+        }
+
+        function drawExplosion() {
+            for (const p of explosionParticles) {
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
 
 
         // Particles system for effects
@@ -385,6 +420,7 @@
 
         // Draw the ship with a glow effect
         function drawShip() {
+            if (isExploding) return;
             if (isHit && shipFlicker) {
                 flickerCount++;
                 if (flickerCount % 6 < 3) {
@@ -592,66 +628,72 @@
         // Check for collisions
         function checkCollisions() {
             const shipHitbox = {
-                left: shipX + 10,  // Less strict hitbox
-                right: shipX + shipWidth - 10,
-                top: shipY + 5,    // More space at the top
-                bottom: shipY + shipHeight - 5
+                left: shipX + 1,
+                right: shipX + shipWidth - 1,
+                top: shipY + 1,
+                bottom: shipY + shipHeight - 1
             };
 
-            // Check ground and ceiling collision
+            // ✅ **Check ground and ceiling collision**
             if (shipHitbox.bottom > groundLevel || shipHitbox.top < ceilingLevel) {
+                console.warn("🚨 Ship hit ground or ceiling!");
                 loseLife();
                 shipFlicker = true;
                 return;
             }
 
-            // Check obstacle collisions
+            // ✅ **Check obstacle collisions**
             for (const obstacle of obstacles) {
-                if (obstacle.isGroundObstacle) {
-                    // Ground obstacle collision
-                    if (obstacle.type === "emoji-block") {
-                        for (let row = 0; row < obstacle.rows; row++) {
-                            for (let col = 0; col < obstacle.pattern[row].length; col++) {
-                                const emoji = obstacle.pattern[row][col];
-                                if (emoji === "") continue; // Skip empty spaces
+                if (obstacle.type === "emoji-block") {
+                    // Iterate through the pattern rows & columns
+                    for (let row = 0; row < obstacle.rows; row++) {
+                        for (let col = 0; col < obstacle.pattern[row].length; col++) {
+                            const emoji = obstacle.pattern[row][col];
+                            if (emoji === "") continue; // Skip empty spaces
 
-                                const x = obstacle.x + col * obstacle.blockSize;
-                                const y = obstacle.y + row * obstacle.blockSize;
-                                const emojiHitbox = {
-                                    left: x + 2,  // Adjust hitbox to match actual emoji size
-                                    right: x + obstacle.blockSize - 2,
-                                    top: y + 2,
-                                    bottom: y + obstacle.blockSize - 2
-                                };
+                            // Calculate precise hitbox for each emoji in the block
+                            const x = obstacle.x + col * obstacle.blockSize;
+                            const y = obstacle.y + row * obstacle.blockSize;
 
-                                if (!invincible &&
-                                    shipHitbox.right > emojiHitbox.left &&
-                                    shipHitbox.left < emojiHitbox.right &&
-                                    shipHitbox.bottom > emojiHitbox.top &&
-                                    shipHitbox.top < emojiHitbox.bottom
-                                ) {
-                                    console.log("Collision detected with emoji at:", x, y);
-                                    loseLife();
-                                    shipFlicker = true;
-                                    return;
-                                }
+                            const emojiHitbox = {
+                                left: x,
+                                right: x + obstacle.blockSize,
+                                top: y,
+                                bottom: y + obstacle.blockSize
+                            };
+
+                            // **Debugging - Check obstacle hitbox in logs**
+                            console.log(`Obstacle: L(${emojiHitbox.left}) R(${emojiHitbox.right}) T(${emojiHitbox.top}) B(${emojiHitbox.bottom})`);
+
+                            // **Collision detection**
+                            if (!invincible &&
+                                shipHitbox.right > emojiHitbox.left &&
+                                shipHitbox.left < emojiHitbox.right &&
+                                shipHitbox.bottom > emojiHitbox.top &&
+                                shipHitbox.top < emojiHitbox.bottom
+                            ) {
+                                console.log("💥 Collision detected with an emoji!");
+                                loseLife();
+                                shipFlicker = true;
+                                return;
                             }
                         }
                     }
                 }
 
-                // Check if obstacle has been passed
+                // ✅ **Check if obstacle has been passed (increase score)**
                 if (!obstacle.passed && shipX > obstacle.x + obstacle.width) {
                     obstacle.passed = true;
                     score++;
-                    obstacleSpeed += 0.05; // Increase difficulty
+                    obstacleSpeed += 0.04; // Gradual difficulty increase
                 }
             }
 
-            // Check for collectible pickups
+            // ✅ **Check for collectible pickups**
             for (let i = activeCollectibles.length - 1; i >= 0; i--) {
                 const item = activeCollectibles[i];
 
+                // Define the hitbox for the collectible item
                 const itemHitbox = {
                     left: item.x - item.size / 2,
                     right: item.x + item.size / 2,
@@ -659,31 +701,34 @@
                     bottom: item.y + item.size / 2
                 };
 
+                // **Collision detection with the ship**
                 if (
                     shipHitbox.right > itemHitbox.left &&
                     shipHitbox.left < itemHitbox.right &&
                     shipHitbox.bottom > itemHitbox.top &&
                     shipHitbox.top < itemHitbox.bottom
                 ) {
-                    console.log(`Collected: ${item.name}`);
-                    score += item.points;  // Increase score
-                    inventory[item.emoji]++; // Update inventory count
-                    updateInventoryDisplay(); // Refresh inventory UI
-                    activeCollectibles.splice(i, 1);
+                    console.log(`✅ Collected: ${item.name}`);
+                    score += item.points;
+                    inventory[item.emoji]++;
+                    updateInventoryDisplay();
+                    activeCollectibles.splice(i, 1); // Remove collected item
 
+                    // **Apply effects**
                     if (item.emoji === "💧") {
-                        console.log("Invincibility Activated!");
+                        console.log("⚡ Invincibility Activated!");
                         invincible = true;
-                        invincibleTimer = 600; // 10 seconds (assuming 60 FPS)
+                        invincibleTimer = 1200;
                     }
 
                     if (item.emoji === "⏳") {
-                        console.log("Time Slowdown Activated!");
+                        console.log("⏳ Time Slowdown Activated!");
                         slowDownTime();
                     }
                 }
             }
         }
+
 
         function slowDownTime() {
             if (window.isTimeSlowed) return; // Prevent multiple slowdowns at the same time
@@ -691,7 +736,7 @@
 
             const originalSpeed = obstacleSpeed; // Store the original speed
 
-            obstacleSpeed *= 0.5; // Slow down time (reduce speed by half)
+            obstacleSpeed *= 0.4; // Slow down time (reduce speed by half)
             console.log("Game slowed down!");
 
             // Restore speed after 5 seconds
@@ -705,80 +750,101 @@
         function loseLife() {
             if (isHit) return; // Prevent multiple hits in a short time
             isHit = true;
-            hitTimer = 60; // Make the ship blink for 1 second
+            isExploding = true; // 🚨 Set exploding state to keep rendering
 
             lives--; // Subtract 1 life
             console.log(`💥 Ship hit! Lives left: ${lives}`);
 
-            if (lives > 0) {
-                restartAfterHit(); // Restart without losing score
-            } else {
-                gameOver = true;
-                gameOverScreen.style.display = 'flex';
-                gameOverScoreDisplay.textContent = `Final Score: ${score}`;
-            }
+            createExplosion(shipX + shipWidth / 2, shipY + shipHeight / 2); // Generate explosion effect
+
+            // **Stop ship movement, obstacles, but keep explosion running**
+            shipVelocity = 0;
+            shipXVelocity = 0;
+            obstacleSpeed = 0;
+
+            setTimeout(() => {
+                isExploding = false; // Stop explosion effect after delay
+                if (lives > 0) {
+                    restartAfterHit();
+                } else {
+                    gameOver = true;
+                    gameOverScreen.style.display = 'flex';
+                    gameOverScreen.style.fontSize = 40;
+                    gameOverScoreDisplay.textContent = `${score}`;
+                }
+                obstacleSpeed = .4; // Reset speed
+            }, 2000); // 2-second delay before restarting
         }
 
         function restartAfterHit() {
             console.log("⏪ Restarting after hit...");
+
+            // Reset explosion state
+            isHit = false;
+            isExploding = false;
+
+            // Reset ship position and movement
             shipY = canvas.height / 2;
             shipVelocity = 0;
             shipX = canvas.width * 0.2;
             shipXVelocity = 0;
 
+            // Restore obstacle movement
+            obstacleSpeed = .4;
+
             // Temporary invincibility after hit
             invincible = true;
-            invincibleTimer = 120; // 2 seconds of invincibility
+            invincibleTimer = 600;
         }
 
         // Handle keyboard input
         const keys = {};
         // Mobile touch controls
-let touchStartX = null;
-let touchStartY = null;
-let lastTouchMoveTime = 0;
-const touchSensitivity = 0.8; // Adjust for smoother acceleration
+        let touchStartX = null;
+        let touchStartY = null;
+        let lastTouchMoveTime = 0;
+        const touchSensitivity = 0.8; // Adjust for smoother acceleration
 
-window.addEventListener("touchstart", (e) => {
-    if (e.touches.length > 0) {
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
-        lastTouchMoveTime = Date.now();
-    }
-});
+        window.addEventListener("touchstart", (e) => {
+            if (e.touches.length > 0) {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                lastTouchMoveTime = Date.now();
+            }
+        });
 
-window.addEventListener("touchmove", (e) => {
-    if (touchStartX === null || touchStartY === null) return;
+        window.addEventListener("touchmove", (e) => {
+            if (touchStartX === null || touchStartY === null) return;
 
-    let touchX = e.touches[0].clientX;
-    let touchY = e.touches[0].clientY;
-    let currentTime = Date.now();
+            let touchX = e.touches[0].clientX;
+            let touchY = e.touches[0].clientY;
+            let currentTime = Date.now();
 
-    if (currentTime - lastTouchMoveTime > 16) { // Limit to ~60FPS
-        let deltaX = touchX - touchStartX;
-        let deltaY = touchY - touchStartY;
+            if (currentTime - lastTouchMoveTime > 16) { // Limit to ~60FPS
+                let deltaX = touchX - touchStartX;
+                let deltaY = touchY - touchStartY;
 
-        // **Move Forward/Backward (Left/Right Swipe)**
-        if (Math.abs(deltaX) > 10) {
-            shipXVelocity += (deltaX * touchSensitivity) * 0.1; // Adjust acceleration
-        }
+                // **Move Forward/Backward (Left/Right Swipe)**
+                if (Math.abs(deltaX) > 10) {
+                    shipXVelocity += (deltaX * touchSensitivity) * 0.07; // Adjust acceleration
+                }
 
-        // **Move Up/Down (Vertical Swipe)**
-        if (Math.abs(deltaY) > 10) {
-            shipVelocity += (deltaY * touchSensitivity)
-        }
+                // **Move Up/Down (Vertical Swipe)**
+                if (Math.abs(deltaY) > 10) {
+                    shipVelocity += (deltaY * touchSensitivity)
+                }
 
-        // Update last touch positions for smoother movement
-        touchStartX = touchX;
-        touchStartY = touchY;
-        lastTouchMoveTime = currentTime;
-    }
-});
+                // Update last touch positions for smoother movement
+                touchStartX = touchX;
+                touchStartY = touchY;
+                lastTouchMoveTime = currentTime;
+            }
+        });
 
-window.addEventListener("touchend", () => {
-    touchStartX = null;
-    touchStartY = null;
-});
+        window.addEventListener("touchend", () => {
+            touchStartX = null;
+            touchStartY = null;
+        });
 
 
         window.addEventListener('keydown', e => {
@@ -812,7 +878,7 @@ window.addEventListener("touchend", () => {
 
         // Update game state
         function updateGame() {
-            if (!gameStarted || gameOver) return;
+            if (!gameStarted || gameOver || isHit) return;
 
             gameTime++;
             handleInput();
@@ -896,12 +962,15 @@ window.addEventListener("touchend", () => {
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            drawBackground();   // Draw the background first
+            drawBackground();   // Draw background first
             drawObstacles();    // Then obstacles
-            drawParticles();    // Then particle effects
+            drawParticles();    // Then ship trail
             drawCollectibles();
-            drawShip();         // Then the ship
-            drawGroundAndCeiling(); // Finally, draw the ceiling and ground last to overlay everything
+
+            if (!isHit) drawShip();  // ❌ Hide ship if hit
+            drawExplosion();  // Draw explosion effect
+
+            drawGroundAndCeiling(); // Finally, draw ceiling & ground
         }
 
         function updateInventoryDisplay() {
@@ -914,18 +983,23 @@ window.addEventListener("touchend", () => {
 
         // Game loop
         function gameLoop() {
-            updateGame();
+            if (!gameOver) {
+                if (!isExploding) { // 🚨 Only stop updates, not rendering
+                    updateGame();
+                }
+                updateExplosion(); // ✅ Always update explosion effect
+            }
+
             draw();
-            setTimeout(() => requestAnimationFrame(gameLoop), 1000 / 60);
+            drawExplosion(); // ✅ Ensure explosion is drawn
+
+            requestAnimationFrame(gameLoop);
         }
 
         // Start the game
         startButton.addEventListener('click', () => {
             startScreen.style.display = 'none';
             gameOverScreen.style.display = 'none'; // Hide Game Over screen if visible
-            gameStarted = true;
-            createBackgroundLayers();
-            gameLoop();
             gameStarted = true;
             createBackgroundLayers();
             gameLoop();
@@ -939,13 +1013,14 @@ window.addEventListener("touchend", () => {
             score = 0;
             shipY = canvas.height / 2;
             shipVelocity = 0;
-            obstacleSpeed = 1;
+            obstacleSpeed = .5;
             obstacles = [];
             lastObstacleTime = 0;
             gameTime = 0;
             shipFlicker = false;
             activeCollectibles = [];
             inventory = { "💧": 0, "💍": 0, "🥥": 0 };
+            createBackgroundLayers();
             updateInventoryDisplay();
             gameLoop();
 
@@ -955,7 +1030,7 @@ window.addEventListener("touchend", () => {
             score = 0;
             shipY = canvas.height / 2;
             shipVelocity = 0;
-            obstacleSpeed = 1;
+            obstacleSpeed = .5;
             obstacles = [];
             lastObstacleTime = 0;
             gameTime = 0;
@@ -969,7 +1044,8 @@ window.addEventListener("touchend", () => {
         function handleGameOver() {
             if (gameOver) {
                 gameOverScreen.style.display = 'flex';
-                gameOverScoreDisplay.textContent = `Final Score: ${score}`;
+                gameOverScreen.style.fontSize = 40;
+                gameOverScoreDisplay.textContent = score;
             }
         }
 
