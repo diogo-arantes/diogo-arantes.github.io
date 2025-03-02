@@ -275,16 +275,16 @@
         let inventory = { "💧": 0, "💎": 0, "🥥": 0, "⏳": 0 };
 
         const sounds = {
-            music1: new Audio("background-layer-0.mp3"),  // Background music
-            music2: new Audio("background-layer-1.mp3"),  // Background music
-            music3: new Audio("background-layer-2.mp3"),  // Background music
-            risada: new Audio("risada-do-mal.mp3"),  // Background music
-            ghost: new Audio("ghost.mp3"),  // Background music
-            effects: new Audio("background-layer-.mp3"),  // Background music
-            shoot: new Audio("shoot.mp3"),  // Shooting sound
-            explosion: new Audio("collision.mp3"), // Explosion sound
-            collect: new Audio("collect.mp3"), // Collectible sound
-            gameover: new Audio("gameover.mp3") // Game over sound
+            music1: new Audio("lib/viagem-amaldicoada/background-layer-0.mp3"),  // Background music
+            music2: new Audio("lib/viagem-amaldicoada/background-layer-1.mp3"),  // Background music
+            music3: new Audio("lib/viagem-amaldicoada/background-layer-2.mp3"),  // Background music
+            risada: new Audio("lib/viagem-amaldicoada/risada-do-mal.mp3"),  // Background music
+            ghost: new Audio("lib/viagem-amaldicoada/ghost.mp3"),  // Background music
+            effects: new Audio("lib/viagem-amaldicoada/background-layer-.mp3"),  // Background music
+            shoot: new Audio("lib/viagem-amaldicoada/shoot.mp3"),  // Shooting sound
+            explosion: new Audio("lib/viagem-amaldicoada/collision.mp3"), // Explosion sound
+            collect: new Audio("lib/viagem-amaldicoada/collect.mp3"), // Collectible sound
+            gameover: new Audio("lib/viagem-amaldicoada/gameover.mp3") // Game over sound
         };
 
         // 🎵 Configure Looping & Volume
