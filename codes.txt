@@ -26,6 +26,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            overflow: hidden;
         }
 
         #start-screen, #game-over-screen {
@@ -44,7 +45,7 @@
 
         h1 {
             color: #8a0303;
-            font-size: 3em;
+            font-size: 2em;
             margin-bottom: 20px;
             text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000;
             animation: pulse 2s infinite;
@@ -58,7 +59,7 @@
 
         button {
             padding: 15px 30px;
-            font-size: 1.5em;
+            font-size: 1em;
             border: 2px solid #8a0303;
             background-color: #1a0707;
             color: #8a0303;
@@ -78,7 +79,7 @@
             position: absolute;
             top: 20px;
             right: 20px;
-            font-size: 1.5em;
+            font-size: 1em;
             z-index: 5;
         }
 
@@ -96,22 +97,22 @@
             position: absolute;
             top: 50px;
             left: 20px;
-            font-size: 1.2em;
+            font-size: 1em;
             color: white;
             background: rgba(0, 0, 0, 0.5);
             padding: 10px;
             border-radius: 5px;
             font-family: 'Courier New', monospace;">
-            Inventory:
+            Inventário
         </div>
         <div id="lives" style="
             position: absolute;
             top: 20px;
             left: 20px;
-            font-size: 1.5em;
+            font-size: 1em;
             color: white;
             z-index: 5;">
-            ❤️ Lives: 3
+            ❤️ Vidas: 3
         </div>
 
         <div id="start-screen">
@@ -147,7 +148,8 @@
         let score = 0;
         let shipY = canvas.height / 2;
         let shipVelocity = 0;
-        let obstacleSpeed = .5;
+        let backgroundSpeed = 5; // Independent background scrolling speed
+        let obstacleSpeed = 1;    // Independent obstacle movement speed
         let obstacles = [];
         let groundLevel = canvas.height * 0.8;
         let ceilingLevel = canvas.height * 0.2;
@@ -225,6 +227,17 @@
         },
         {
             pattern: [
+                ["",   "🐍", "🐍"],
+                ["",   "🐍", ""],
+                ["🐍", "🐍", ""],
+                ["🐍", "🐍", ""],
+                [      "🐍", ""],
+                [      "🐍", "🐍"],
+            ],
+            type: "eggs"
+        },
+        {
+            pattern: [
                 ["🦴","🦴", "🦴", "🦴"],
                 ["🦴","🦴", "🦴", "🦴"],
                 ["","", "🦴", "🦴"],
@@ -241,20 +254,93 @@
         // Define collectible items
         const collectibles = [
         { emoji: "💧", name: "red drop", points: 5 },
-        { emoji: "💍", name: "ring", points: 10 },
+        { emoji: "💎", name: "ring", points: 10 },
         { emoji: "🥥", name: "coconut", points: 15 },
         { emoji: "⏳", name: "time", points: 10 }
         ];
 
-        let inventory = { "💧": 0, "💍": 0, "🥥": 0, "⏳": 0 };
+        let inventory = { "💧": 0, "💎": 0, "🥥": 0, "⏳": 0 };
 
         let invincible = false;
         let invincibleTimer = 0;
 
+        let bullets = [];
+        let canShoot = false; // Starts as false, enabled when a coconut is collected
+        const bulletSpeed = 8;
+        const bulletSize = 10;
+        let shootTimer = 0;
 
+        let normalAcceleration = 0.3; // Default acceleration
+        let slowAcceleration = 0.1;   // Reduced acceleration when diamond is active
+        let currentAcceleration = normalAcceleration; // Track current acceleration
+
+        let slowMovementTimer = 0; // Timer for slow effect
         // List of collectible objects in the game
         let activeCollectibles = [];
 
+        // Shoot function
+        function shootBullet() {
+            if (canShoot) {
+                bullets.push({
+                    x: shipX + shipWidth,
+                    y: shipY + shipHeight / 2,
+                    size: bulletSize,
+                });
+            }
+        }
+
+        // Update bullets
+        function updateBullets() {
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                bullets[i].x += bulletSpeed;
+
+                // Remove bullet if it goes off-screen
+                if (bullets[i].x > canvas.width) {
+                    bullets.splice(i, 1);
+                    continue;
+                }
+
+                // Check collision with obstacles
+                for (let j = obstacles.length - 1; j >= 0; j--) {
+                    let obstacle = obstacles[j];
+
+                    if (obstacle.type === "emoji-block") {
+                        for (let row = 0; row < obstacle.rows; row++) {
+                            for (let col = 0; col < obstacle.pattern[row].length; col++) {
+                                let emoji = obstacle.pattern[row][col];
+                                if (emoji === "") continue;
+
+                                let emojiX = obstacle.x + col * obstacle.blockSize;
+                                let emojiY = obstacle.y + row * obstacle.blockSize;
+
+                                // Bullet hitbox
+                                if (
+                                    bullets[i].x + bullets[i].size > emojiX &&
+                                    bullets[i].x < emojiX + obstacle.blockSize &&
+                                    bullets[i].y > emojiY &&
+                                    bullets[i].y < emojiY + obstacle.blockSize
+                                ) {
+                                    console.log(`🔥 Bullet destroyed ${emoji}`);
+                                    obstacle.pattern[row][col] = ""; // Remove emoji
+                                    bullets.splice(i, 1); // Remove bullet
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Draw bullets
+        function drawBullets() {
+            ctx.fillStyle = "yellow";
+            for (let bullet of bullets) {
+                ctx.beginPath();
+                ctx.arc(bullet.x, bullet.y, bullet.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
 
         // Create background layers
         function createBackgroundLayers() {
@@ -371,38 +457,37 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             for (const layer of bgLayers) {
-                layer.x -= layer.speed;
+                layer.x -= backgroundSpeed * layer.speed; // Use `backgroundSpeed`
                 if (layer.x < -canvas.width) {
                     layer.x = 0;
                 }
 
                 for (const obj of layer.clouds) {
-                    obj.x -= layer.speed * obj.depth; // Adjust movement by depth
+                    obj.x -= backgroundSpeed * obj.depth; // Background scrolls separately
                     if (obj.x < -obj.width) {
                         obj.x = canvas.width + Math.random() * 100;
                         obj.y = Math.random() * canvas.height;
                     }
 
-                    let adjustedOpacity = obj.opacity * obj.depth; // Adjust opacity by depth
+                    let adjustedOpacity = obj.opacity * obj.depth;
 
                     if (obj.type === "star") {
-                        // Draw stars with depth-based brightness
                         ctx.fillStyle = `rgba(255, 255, 255, ${adjustedOpacity})`;
                         ctx.beginPath();
                         ctx.arc(obj.x, obj.y, obj.width / 6, 0, Math.PI * 2);
                         ctx.fill();
                     } else if (obj.type === "planet") {
-                        // Draw planets with depth-based transparency
                         ctx.fillStyle = obj.color;
                         ctx.globalAlpha = adjustedOpacity;
                         ctx.beginPath();
                         ctx.arc(obj.x, obj.y, obj.width / 2, 0, Math.PI * 2);
                         ctx.fill();
-                        ctx.globalAlpha = 1.0; // Reset opacity for other elements
+                        ctx.globalAlpha = 1.0;
                     }
                 }
             }
         }
+
 
 
         function drawCollectibles() {
@@ -479,6 +564,21 @@
             ctx.strokeStyle = '#8a0303';
             ctx.lineWidth = 1;
             ctx.stroke();
+
+            if (canShoot) {
+                // Side Cannons (Left & Right)
+                ctx.fillStyle = '#222'; // Dark gray for weapons
+                ctx.fillRect(shipX + shipWidth * 0.1, shipY + shipHeight * 0.2, 10, 20);
+                ctx.fillRect(shipX + shipWidth * 0.1, shipY + shipHeight * 0.6, 10, 20);
+                ctx.fillRect(shipX + shipWidth * 0.9 - 10, shipY + shipHeight * 0.2, 10, 20);
+                ctx.fillRect(shipX + shipWidth * 0.9 - 10, shipY + shipHeight * 0.6, 10, 20);
+
+                // Glowing Energy Core in the Center
+                ctx.fillStyle = 'rgba(0, 255, 255, 0.6)'; // Bright blue-green core
+                ctx.beginPath();
+                ctx.arc(shipX + shipWidth * 0.5, shipY + shipHeight * 0.5, shipHeight * 0.15, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
 
         // Create obstacles: ground spikes and ceiling spikes
@@ -490,11 +590,13 @@
             const sectionHeight = (groundLevel - ceilingLevel) / numSections;
             let availableSections = Array.from({ length: numSections }, (_, i) => i);
 
-            // Find a random available section
+            // Ensure obstacles don't overlap by checking last spawned position
             const sectionIndex = availableSections.splice(
                 Math.floor(Math.random() * availableSections.length),
                 1
             )[0];
+
+            let newObstacle;
 
             if (isEmojiBlock) {
                 const shape = emojiShapes[Math.floor(Math.random() * emojiShapes.length)];
@@ -502,7 +604,7 @@
                 const numRows = shape.pattern.length;
                 const numCols = shape.pattern[0].length;
 
-                const obstacle = {
+                newObstacle = {
                     type: "emoji-block",
                     x: canvas.width,
                     width: numCols * blockSize,
@@ -514,16 +616,14 @@
                     passed: false
                 };
 
-                // Position the obstacle inside the selected section
-                obstacle.y = ceilingLevel + sectionIndex * sectionHeight + (sectionHeight - obstacle.height) / 2;
-
-                obstacles.push(obstacle);
+                // Position obstacle inside the selected section
+                newObstacle.y = ceilingLevel + sectionIndex * sectionHeight + (sectionHeight - newObstacle.height) / 2;
             } else {
                 // Traditional spike obstacle
-                const width = 30 + Math.random() * 30;
-                const height = 70 + Math.random() * 100;
+                const width = 40 + Math.random() * 40;
+                const height = 80 + Math.random() * 120;
 
-                const obstacle = {
+                newObstacle = {
                     type: "spike",
                     x: canvas.width,
                     width,
@@ -533,22 +633,33 @@
                 };
 
                 // Position spikes at a separate height section
-                obstacle.y = ceilingLevel + sectionIndex * sectionHeight + (sectionHeight - height) / 2;
-
-                obstacles.push(obstacle);
+                newObstacle.y = ceilingLevel + sectionIndex * sectionHeight + (sectionHeight - height) / 2;
             }
+
+            // ✅ **Prevent spawning obstacles too close together**
+            if (obstacles.length > 0) {
+                const lastObstacle = obstacles[obstacles.length - 1];
+                if (newObstacle.x - lastObstacle.x < 150) {
+                    return; // Avoid spawning too close
+                }
+            }
+
+            obstacles.push(newObstacle);
         }
 
+
         function createCollectible() {
+            if (Math.random() > 0.7) return; // Only 30% chance to spawn a collectible
+
             const item = collectibles[Math.floor(Math.random() * collectibles.length)];
-            const size = 30; // Size of collectible
-            const yPos = Math.random() * (groundLevel - ceilingLevel - size) + ceilingLevel; // Random y position
+            const size = 30;
+            const yPos = Math.random() * (groundLevel - ceilingLevel - size) + ceilingLevel;
 
             activeCollectibles.push({
                 emoji: item.emoji,
                 name: item.name,
                 points: item.points,
-                x: canvas.width, // Start off-screen
+                x: canvas.width,
                 y: yPos,
                 size: size,
                 collected: false
@@ -627,11 +738,12 @@
 
         // Check for collisions
         function checkCollisions() {
+            // 🚀 Adjusted hitbox: slightly smaller than the visible ship
             const shipHitbox = {
-                left: shipX + 1,
-                right: shipX + shipWidth - 1,
-                top: shipY + 1,
-                bottom: shipY + shipHeight - 1
+                left: shipX + 10,  // Offset for better accuracy
+                right: shipX + shipWidth - 10,
+                top: shipY + 5,
+                bottom: shipY + shipHeight - 5
             };
 
             // ✅ **Check ground and ceiling collision**
@@ -645,28 +757,26 @@
             // ✅ **Check obstacle collisions**
             for (const obstacle of obstacles) {
                 if (obstacle.type === "emoji-block") {
-                    // Iterate through the pattern rows & columns
                     for (let row = 0; row < obstacle.rows; row++) {
                         for (let col = 0; col < obstacle.pattern[row].length; col++) {
                             const emoji = obstacle.pattern[row][col];
                             if (emoji === "") continue; // Skip empty spaces
 
-                            // Calculate precise hitbox for each emoji in the block
-                            const x = obstacle.x + col * obstacle.blockSize;
-                            const y = obstacle.y + row * obstacle.blockSize;
-
+                            // More precise obstacle hitbox
                             const emojiHitbox = {
-                                left: x,
-                                right: x + obstacle.blockSize,
-                                top: y,
-                                bottom: y + obstacle.blockSize
+                                left: obstacle.x + col * obstacle.blockSize + 5,  // Reduce width sensitivity
+                                right: obstacle.x + (col + 1) * obstacle.blockSize - 5,
+                                top: obstacle.y + row * obstacle.blockSize + 5,   // Reduce height sensitivity
+                                bottom: obstacle.y + (row + 1) * obstacle.blockSize - 5
                             };
 
-                            // **Debugging - Check obstacle hitbox in logs**
-                            console.log(`Obstacle: L(${emojiHitbox.left}) R(${emojiHitbox.right}) T(${emojiHitbox.top}) B(${emojiHitbox.bottom})`);
+                            // Debugging: Log actual hitbox positions
+                            console.log(`Obstacle Hitbox -> L: ${emojiHitbox.left}, R: ${emojiHitbox.right}, T: ${emojiHitbox.top}, B: ${emojiHitbox.bottom}`);
+                            console.log(`Ship Hitbox -> L: ${shipHitbox.left}, R: ${shipHitbox.right}, T: ${shipHitbox.top}, B: ${shipHitbox.bottom}`);
 
-                            // **Collision detection**
-                            if (!invincible &&
+                            // **Collision detection (Fixed)**
+                            if (
+                                !invincible &&
                                 shipHitbox.right > emojiHitbox.left &&
                                 shipHitbox.left < emojiHitbox.right &&
                                 shipHitbox.bottom > emojiHitbox.top &&
@@ -725,23 +835,36 @@
                         console.log("⏳ Time Slowdown Activated!");
                         slowDownTime();
                     }
+
+                    if (item.emoji === "🥥") {
+                        canShoot = true;
+                        shootTimer = 3000;
+                        console.log("🚀 Shooting enabled!");
+                    }
+
+                    if (item.emoji === "💎") {
+                        console.log("💎 Diamond collected! Movement sensitivity reduced!");
+                        currentAcceleration = slowAcceleration;
+                        slowMovementTimer = 1500;
+                    }
                 }
             }
         }
-
 
         function slowDownTime() {
             if (window.isTimeSlowed) return; // Prevent multiple slowdowns at the same time
             window.isTimeSlowed = true;
 
             const originalSpeed = obstacleSpeed; // Store the original speed
+            const originalBackgroundSpeed = backgroundSpeed; // Store the original speed
 
             obstacleSpeed *= 0.4; // Slow down time (reduce speed by half)
+            backgroundSpeed *= .4;
             console.log("Game slowed down!");
 
             // Restore speed after 5 seconds
             setTimeout(() => {
-                obstacleSpeed = originalSpeed;
+
                 console.log("Game speed restored!");
                 window.isTimeSlowed = false; // Allow future slowdowns
             }, 5000);
@@ -795,6 +918,9 @@
             // Temporary invincibility after hit
             invincible = true;
             invincibleTimer = 600;
+
+            canShoot = true;
+            shootTimer = 0;
         }
 
         // Handle keyboard input
@@ -826,15 +952,15 @@
 
                 // **Move Forward/Backward (Left/Right Swipe)**
                 if (Math.abs(deltaX) > 10) {
-                    shipXVelocity += (deltaX * touchSensitivity) * 0.07; // Adjust acceleration
+                    shipXVelocity += (deltaX * touchSensitivity) * 0.02; // Adjust acceleration
                 }
 
-                // **Move Up/Down (Vertical Swipe)**
-                if (Math.abs(deltaY) > 10) {
-                    shipVelocity += (deltaY * touchSensitivity)
-                }
+                // Apply slower sensitivity if diamond is active
+                let adjustedTouchSensitivity = currentAcceleration * 5;
 
-                // Update last touch positions for smoother movement
+                shipXVelocity += (deltaX * adjustedTouchSensitivity) * 0.07;
+                shipVelocity += (deltaY * adjustedTouchSensitivity);
+
                 touchStartX = touchX;
                 touchStartY = touchY;
                 lastTouchMoveTime = currentTime;
@@ -846,33 +972,31 @@
             touchStartY = null;
         });
 
-
         window.addEventListener('keydown', e => {
             keys[e.key] = true;
         });
         window.addEventListener('keyup', e => {
             keys[e.key] = false;
         });
+        window.addEventListener("keydown", (e) => {
+            if (e.key === " " || e.code === "Space") {
+                shootBullet();
+            }
+        });
+
 
         function handleInput() {
-            // Move ship up with W or Up arrow
             if (keys['w'] || keys['W'] || keys['ArrowUp']) {
-                shipVelocity -= 1.6;
+                shipVelocity -= currentAcceleration * 4;
             }
-
-            // Move ship down with S or Down arrow
             if (keys['s'] || keys['S'] || keys['ArrowDown']) {
-                shipVelocity += 0.8;
+                shipVelocity += currentAcceleration * 2;
             }
-
-            // Move ship left with A or Left Arrow
             if (keys['a'] || keys['A'] || keys['ArrowLeft']) {
-                shipXVelocity -= shipAcceleration * 1.2;
+                shipXVelocity -= currentAcceleration * 1.2;
             }
-
-            // Move ship right with D or Right Arrow
             if (keys['d'] || keys['D'] || keys['ArrowRight']) {
-                shipXVelocity += shipAcceleration;
+                shipXVelocity += currentAcceleration;
             }
         }
 
@@ -891,12 +1015,12 @@
                 }
             }
 
-            // Apply gravity and velocity to ship (Vertical Movement)
+            // Move ship vertically
             shipVelocity += gravity;
-            shipVelocity *= 0.6; // Add some drag
+            shipVelocity *= 0.6;
             shipY += shipVelocity;
 
-            // Limit ship velocity (vertical)
+            // Limit ship velocity
             if (shipVelocity > 10) shipVelocity = 10;
             if (shipVelocity < -10) shipVelocity = -10;
 
@@ -904,11 +1028,9 @@
             shipXVelocity *= shipFriction;
             shipX += shipXVelocity;
 
-            // **Prevent the ship from going out of bounds (Left/Right)**
+            // Prevent out-of-bounds movement
             if (shipX < 0) shipX = 0;
             if (shipX > canvas.width - shipWidth) shipX = canvas.width - shipWidth;
-
-            // **Prevent the ship from going out of bounds (Up/Down)**
             if (shipY < ceilingLevel) shipY = ceilingLevel;
             if (shipY > groundLevel - shipHeight) shipY = groundLevel - shipHeight;
 
@@ -917,46 +1039,63 @@
                 createShipTrail();
             }
 
-            // Update particles
             updateParticles();
 
-            // Move collectibles
-            for (let i = activeCollectibles.length - 1; i >= 0; i--) {
-                activeCollectibles[i].x -= obstacleSpeed;
-
-                // Remove if it goes off-screen
-                if (activeCollectibles[i].x < -50) {
-                    activeCollectibles.splice(i, 1);
-                }
-            }
-
-            // Spawn a new collectible occasionally
-            if (gameTime % 250 === 0) {
-                createCollectible();
-            }
-
-            // Update obstacles
+            // Move obstacles using `obstacleSpeed`
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 obstacles[i].x -= obstacleSpeed;
-
                 if (obstacles[i].x < -obstacles[i].width) {
                     obstacles.splice(i, 1);
                 }
             }
 
-            // Create new obstacles
-            if (gameTime - lastObstacleTime > 120) {
+            // Move collectibles using `obstacleSpeed`
+            for (let i = activeCollectibles.length - 1; i >= 0; i--) {
+                activeCollectibles[i].x -= obstacleSpeed;
+                if (activeCollectibles[i].x < -50) {
+                    activeCollectibles.splice(i, 1);
+                }
+            }
+
+            // Spawn collectibles occasionally
+            if (gameTime % 250 === 0) {
+                createCollectible();
+            }
+
+            // Adjust the spawn frequency based on obstacle speed
+            let obstacleSpawnRate = Math.max(80, 200 - obstacleSpeed * 20);
+            // Faster speed = more frequent obstacles, but never less than 80 frames apart
+
+            // Spawn obstacles dynamically
+            if (gameTime - lastObstacleTime > obstacleSpawnRate) {
                 createObstacle();
                 lastObstacleTime = gameTime;
             }
 
-            // Check collisions
+            // Reduce shooting timer
+            if (canShoot && shootTimer > 0) {
+                shootTimer--;
+                if (shootTimer <= 0) {
+                    canShoot = false;
+                    console.log("⏳ Shooting ability expired!");
+                }
+            }
+
+            if (slowMovementTimer > 0) {
+                slowMovementTimer--;
+                if (slowMovementTimer <= 0) {
+                    currentAcceleration = normalAcceleration;
+                    console.log("⏳ Diamond effect over! Movement back to normal.");
+                }
+            }
+
             checkCollisions();
 
-            // Update score
+            // Update UI
             scoreDisplay.textContent = `Score: ${score}`;
             document.getElementById('lives').innerHTML = `❤️ Vidas: ${lives}`;
         }
+
 
         // Main draw function
         function draw() {
@@ -976,7 +1115,7 @@
         function updateInventoryDisplay() {
             const inventoryDisplay = document.getElementById('inventory');
             inventoryDisplay.innerHTML = `Inventário:
-                💍 ${inventory["💍"]}
+                💎 ${inventory["💎"]}
                 🥥 ${inventory["🥥"]}
                 💧 ${inventory["💧"]}`;
         }
@@ -986,11 +1125,13 @@
             if (!gameOver) {
                 if (!isExploding) { // 🚨 Only stop updates, not rendering
                     updateGame();
+                    updateBullets();
                 }
                 updateExplosion(); // ✅ Always update explosion effect
             }
 
             draw();
+            drawBullets();
             drawExplosion(); // ✅ Ensure explosion is drawn
 
             requestAnimationFrame(gameLoop);
@@ -1007,37 +1148,54 @@
 
         // Restart the game
         restartButton.addEventListener('click', () => {
+            console.log("🔄 Restarting game...");
+
+            // Stop any ongoing animations
+            cancelAnimationFrame(gameLoop);
+
+            // Hide game over screen
             gameOverScreen.style.display = 'none';
-            gameStarted = true;
-            gameOver = false;
-            score = 0;
-            shipY = canvas.height / 2;
-            shipVelocity = 0;
-            obstacleSpeed = .5;
-            obstacles = [];
-            lastObstacleTime = 0;
-            gameTime = 0;
-            shipFlicker = false;
-            activeCollectibles = [];
-            inventory = { "💧": 0, "💍": 0, "🥥": 0 };
-            createBackgroundLayers();
-            updateInventoryDisplay();
-            gameLoop();
 
             // Reset game state
             gameStarted = true;
             gameOver = false;
-            score = 0;
-            shipY = canvas.height / 2;
-            shipVelocity = 0;
-            obstacleSpeed = .5;
-            obstacles = [];
-            lastObstacleTime = 0;
-            gameTime = 0;
-            shipFlicker = false;
+            isExploding = false;  // Ensure ship is not "exploding"
+            isHit = false;        // Prevent blinking effect
+            flickerCount = 0;
 
-            // Update score display
+            // Reset ship position and movement
+            shipY = canvas.height / 2;
+            shipX = canvas.width * 0.2;
+            shipVelocity = 0;
+            shipXVelocity = 0;
+
+            backgroundSpeed = 5;
+            obstacleSpeed = 1;
+
+            // Reset obstacles, collectibles, and inventory
+            obstacles = [];
+            activeCollectibles = [];
+            inventory = { "💧": 0, "💎": 0, "🥥": 0, "⏳": 0 };
+
+            // Reset timers and speeds
+            lastObstacleTime = 0;
+            lastCollectibleTime = 0;
+            gameTime = 0;
+            lives = 5;
+            invincible = false;
+            invincibleTimer = 0;
+
+            // Reset UI
+            score = 0;
             scoreDisplay.textContent = `Score: ${score}`;
+            document.getElementById('lives').innerHTML = `❤️ Vidas: ${lives}`;
+            updateInventoryDisplay();
+
+            // Reset background and start fresh
+            createBackgroundLayers();
+
+            // Restart the game loop
+            requestAnimationFrame(gameLoop);
         });
 
         // Handle game over
