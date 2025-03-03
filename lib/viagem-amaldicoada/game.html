@@ -265,10 +265,11 @@
 
         const bosses = [
             { emoji: "🐍", name: 'still', hits: 5, size: 100 },
-            { emoji: "🧌", name: 'still', hits: 7, size: 100 },
-            { emoji: "🧟‍♀️", name: 'circular', hits: 9, size: 100 },
-            { emoji: "🦹🏽‍♂️", name: 'still', hits: 9, size: 100 },
+            { emoji: "🧟‍♀️", name: 'circular', hits: 7, size: 100 },
+            { emoji: "😵‍💫", name: 'still', hits: 9, size: 100 },
+            { emoji: "🦹🏽‍♂️", name: 'still', hits: 7, size: 100 },
             { emoji: "☣️", name: 'circular', hits: 9, size: 100 },
+            { emoji: "🫅🏽", name: 'still', hits: 9, size: 100 },
         ];
 
         // 🏆 Collectibles & Inventory
@@ -780,8 +781,14 @@
             backgroundSpeed = 0.4;
             obstacleSpeed = 0.4;
             currentBoss = { ...bosses[bossIndex], x: canvas.width / 2, y: canvas.height / 2, size: 100 };
-            bossHits = currentBoss.hits;
 
+            // 🔹 Reduzir tamanho do chefe em 66% no mobile e alinhá-lo à direita
+            if (isMobile) {
+                currentBoss.size *= 0.33;  // 100% - 66% = 34% do tamanho original
+                currentBoss.x = canvas.width - currentBoss.size * 2; // Move para a direita
+            }
+
+            bossHits = currentBoss.hits;
             updateArmorBar(); // Update UI
         }
 
@@ -842,7 +849,7 @@
         function drawBoss() {
             if (!bossActive || !currentBoss) return;
 
-            ctx.font = `${currentBoss.size*1.25}px Arial`;
+            ctx.font = `${currentBoss.size*1.5}px Arial`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
 
@@ -1801,7 +1808,7 @@
                 if (obstacles[i].x < -obstacles[i].width) {
                     obstacles.splice(i, 1);
                     obstaclesPassed++;
-                    if (obstaclesPassed % 10 == 0) {
+                    if (obstaclesPassed % 20 == 0) {
                         spawnBoss();
                     }
                 }
