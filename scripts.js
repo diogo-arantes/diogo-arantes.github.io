@@ -120,11 +120,18 @@ function createCodeBoxes(snippets) {
         terminal.appendChild(downloadButton);
 
         // **Enable the "Run Code" button only if the file has .html extension**
-        if (snippet.title.toLowerCase().endsWith('.html')) {
+        if (snippet.title.toLowerCase().startsWith('nave')) {
             const runCodeButton = document.createElement('button');
             runCodeButton.className = 'run-btn';
             runCodeButton.innerText = 'Executar Código';
-            runCodeButton.onclick = () => runSnippetInNewTab(snippet.code);
+
+            runCodeButton.onclick = () => {
+                const gameUrl = './lib/viagem-amaldicoada/game.html';
+
+                // Open the game page in a new tab
+                window.open(gameUrl, '_blank');
+            };
+
             terminal.appendChild(runCodeButton);
         }
 
