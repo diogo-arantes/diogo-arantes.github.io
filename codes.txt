@@ -177,6 +177,10 @@
         let isHit = false; // To track ship blinking effect
         let hitTimer = 0;  // Timer for blinking animation
 
+        let laserActive = false;
+        let laserDuration = 2500; // Laser lasts 500 frames (~8 seconds)
+
+
         const normalGravity = 0.3;
         const mobileGravity = 0.15; // 🔽 Lower gravity for mobile
         let gravity = isMobile ? mobileGravity : normalGravity;
@@ -213,7 +217,9 @@
             pattern: [
                 ["👾", "👾", "👾"],
                 ["👾", "👾", "👾"],
-                ["👾", "👾", "👾"]
+                ["👾", "👾", "👾"],
+                ["👾", "👾", "👾"],
+                ["👾", "👾", "👾"],
             ],
             type: "square"
         },
@@ -226,6 +232,26 @@
                 ["", "", "👽", "", ""]
             ],
             type: "diamond"
+        },
+        { // Eyes
+            pattern: [
+                ["👀", "", "", "", "👀"],
+                ["👀", "👀", "", "👀", "👀"],
+                ["👀", "👀", "👀", "👀", "👀"],
+                ["👀", "👀", "", "👀", "👀"],
+                ["👀", "", "", "", "👀"]
+            ],
+            type: "eyes"
+        },
+        { // Bar
+            pattern: [
+                ["", "", "", "", ""],
+                ["", "", "", "", ""],
+                ["🟥", "🟥", "🟥", "🟥", "🟥"],
+                ["", "", "", "", ""],
+                ["", "", "", "", ""]
+            ],
+            type: "bar"
         },
         {
             pattern: [
@@ -391,6 +417,51 @@
                 ctx.beginPath();
                 ctx.arc(bullet.x, bullet.y, bullet.size, 0, Math.PI * 2);
                 ctx.fill();
+            }
+        }
+
+        function activateLaserMode() {
+            console.log("⚡ LASER MODE ACTIVATED!");
+            laserActive = true;
+            playSound("shoot");
+
+            setTimeout(() => {
+                laserActive = false;
+                console.log("⚡ Laser Mode Over!");
+            }, laserDuration);
+        }
+
+        function drawLaser() {
+            if (!laserActive) return;
+
+            ctx.strokeStyle = "cyan"; // Laser color
+            ctx.lineWidth = 4; // Thick laser beam
+            ctx.globalAlpha = 0.7;
+
+            ctx.beginPath();
+            ctx.moveTo(shipX + shipWidth, shipY + shipHeight / 2);
+            ctx.lineTo(canvas.width, shipY + shipHeight / 2); // Laser extends across the screen
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+
+            destroyObstaclesWithLaser();
+        }
+
+        function destroyObstaclesWithLaser() {
+            if (!laserActive) return;
+
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obstacle = obstacles[i];
+
+                // Check if obstacle is aligned with the laser
+                if (
+                    obstacle.y < shipY + shipHeight / 2 + 20 &&
+                    obstacle.y + obstacle.height > shipY + shipHeight / 2 - 20
+                ) {
+                    console.log("💥 Laser destroyed an obstacle!");
+                    createExplosion(obstacle.x + obstacle.width / 2, obstacle.y + obstacle.height / 2);
+                    obstacles.splice(i, 1);
+                }
             }
         }
 
@@ -923,6 +994,11 @@
                         canShoot = true;
                         shootTimer = 1500;
                         console.log("🚀 Shooting enabled!");
+
+                        if (inventory["🔫"] >= 3) {
+                            activateLaserMode();
+                            inventory["🔫"] = 0
+                        }
                     }
 
                     if (item.emoji === "💩") {
@@ -1133,6 +1209,8 @@
         }
 
         // Update game state
+        let nextCollectibleTime = gameTime + Math.floor(Math.random() * 500) + 300; // Initial random delay
+
         function updateGame() {
             if (!gameStarted || gameOver || isHit) return;
 
@@ -1199,9 +1277,11 @@
             }
 
             // Spawn collectibles occasionally
-            if (gameTime % 250 === 0) {
+            if (gameTime >= nextCollectibleTime) {
                 createCollectible();
+                nextCollectibleTime = gameTime + Math.floor(Math.random() * 500) + 300; // Set next spawn
             }
+
 
             // Adjust the spawn frequency based on obstacle speed
             let obstacleSpawnRate = Math.max(80, 200 - obstacleSpeed * 20);
@@ -1275,6 +1355,7 @@
 
             draw();
             drawBullets();
+            drawLaser();
             drawExplosion(); // ✅ Ensure explosion is drawn
 
             requestAnimationFrame(gameLoop);
