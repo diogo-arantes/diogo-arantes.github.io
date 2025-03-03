@@ -19,24 +19,51 @@
             overflow: hidden;
             height: 100%;
             width: 100%;
-            touch-action: none; /* Prevent touch scrolling */
         }
-
 
         canvas {
             display: block;
             background: linear-gradient(to bottom, #0a0a0a, #1a0707);
-            height: 100vh;
         }
 
         #game-container {
             position: absolute;
             width: 100vw;
-            height: 100vh; /* This will be corrected by JS */
+            height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
+        }
+
+        #bars-container {
+            position: absolute;
+            top: 20px;
+            left: 100px;
+            display: flex;
+            gap: 10px;
+        }
+
+        #mana-bar-container, #armor-bar-container {
+            width: 120px;
+            height: 15px;
+            background: rgb(34, 0, 0);
+            border-radius: 5px;
             overflow: hidden;
+            border: 2px solid rgb(83, 0, 0);
+        }
+
+        #mana-bar {
+            width: 100%;
+            height: 100%;
+            background: rgb(255, 9, 9);
+            transition: width 0.2s;
+        }
+
+        #armor-bar {
+            width: 0%;
+            height: 100%;
+            background: rgb(75, 9, 255);
+            transition: width 0.2s;
         }
 
         #start-screen, #game-over-screen {
@@ -97,6 +124,13 @@
             font-size: 2em;
             margin: 20px 0;
         }
+
+        @media (max-width: 768px) {
+            #mana-bar-container, #armor-bar-container {
+                width: 60px;
+                height: 10px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -105,11 +139,10 @@
         <div id="score">Score: 0</div>
         <div id="inventory" style="
             position: absolute;
-            top: 35px;
-            left: 20px;
+            top: 30px;
+            left: 10px;
             font-size: .8em;
             color: white;
-            background: rgba(0, 0, 0, 0.5);
             padding: 10px;
             border-radius: 5px;
             font-family: 'Courier New', monospace;">
@@ -122,37 +155,13 @@
             color: white;
             z-index: 5;">
         </div>
-        <div id="mana-bar-container" style="
-            position: absolute;
-            top: 20px;
-            left: 150px;
-            width: 120px;
-            height: 15px;
-            background: rgb(34, 0, 0);
-            border-radius: 5px;
-            overflow: hidden;
-            border: 2px solid rgb(83, 0, 0);">
-            <div id="mana-bar" style="
-                width: 100%;
-                height: 100%;
-                background: rgb(255, 9, 9);
-                transition: width 0.2s;"></div>
-        </div>
-        <div id="armor-bar-container" style="
-            position: absolute;
-            top: 20px;
-            left: 280px;
-            width: 120px;
-            height: 15px;
-            background: rgb(34, 0, 0);
-            border-radius: 5px;
-            overflow: hidden;
-            border: 2px solid rgb(0, 19, 83);">
-            <div id="armor-bar" style="
-                width: 0%;
-                height: 100%;
-                background: rgb(75, 9, 255);
-                transition: width 0.2s;"></div>
+        <div id="bars-container">
+            <div id="mana-bar-container">
+                <div id="mana-bar"></div>
+            </div>
+            <div id="armor-bar-container">
+                <div id="armor-bar"></div>
+            </div>
         </div>
 
         <div id="start-screen">
@@ -168,7 +177,7 @@
     </div>
 
     <script>
-        // Game variables
+        // 🎮 Game Elements (DOM)
         const canvas = document.getElementById('game-canvas');
         const ctx = canvas.getContext('2d');
         const scoreDisplay = document.getElementById('score');
@@ -178,191 +187,214 @@
         const startButton = document.getElementById('start-button');
         const restartButton = document.getElementById('restart-button');
 
-        // Set canvas size
+        // 📌 Set Canvas Size
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        // Game state
+        // 📱 Device Detection
         const isMobile = /iPhone|iPad|Android|Mobile/i.test(navigator.userAgent);
 
+        // 🚀 Game State
         let gameStarted = false;
         let gameOver = false;
-        let score = 0;
-        let maxMana = 100;
-        let mana = maxMana;
-        let shipY = canvas.height / 2;
-        let shipVelocity = 0;
-        let backgroundSpeed = 5; // Independent background scrolling speed
-        let obstacleSpeed = 1;    // Independent obstacle movement speed
-        let obstacles = [];
-        let groundLevel = canvas.height * 0.9;
-        let ceilingLevel = canvas.height * 0.1;
-        let lastObstacleTime = 0;
         let gameTime = 0;
+        let score = 0;
+        let lastObstacleTime = 0;
+        let lastCollectibleTime = 0;
+
+        // ❤️ Player State
+        let lives = 3;
+        let isHit = false;
+        let hitTimer = 0;
         let isExploding = false;
         let shipFlicker = false;
         let flickerCount = 0;
-        let shipXVelocity = 0; // Horizontal velocity
-        const shipAcceleration = 0.3; // How fast the ship moves
-        const shipFriction = 0.9; // Friction effect to smooth movement
-        const fastSpeedThreshold = 3; // Adjust as needed
 
-        let lives = 5; // Ship starts with 3 lives
-        let isHit = false; // To track ship blinking effect
-        let hitTimer = 0;  // Timer for blinking animation
+        // 🛠 Ship Properties
+        const shipWidth = 80, shipHeight = 40;
+        let shipX = canvas.width * 0.2, shipY = canvas.height / 2;
+        let shipVelocity = 0, shipXVelocity = 0;
+        const shipAcceleration = 0.3, shipFriction = 0.9;
+        const fastSpeedThreshold = 3;
 
-        // Initialize armor system
-        let maxArmor = 100;
-        let armor = 0;
-        let laserActive = false;
-        let laserDuration = 2500; // Laser lasts 500 frames (~8 seconds)
-        let laserBeam = null;
-
-        let invincible = false;
-        let invincibleTimer = 0;
-
-        let bullets = [];
-        let laserCooldown = false;
-        let canShoot = false; // Starts as false, enabled when a coconut is collected
+        // ⚡ Power-ups & Energy
+        let maxMana = 100, mana = maxMana;
+        let maxArmor = 100, armor = 0;
+        let invincible = false, invincibleTimer = 0;
+        let canShoot = false, laserActive = false, laserBeam = null;
+        let bullets = [], laserCooldown = false, shootTimer = 0;
         const bulletSpeed = 10;
         const bulletSize = 8;
-        let shootTimer = 0;
-        // Initialize bullet count
-        let bulletCount = 0;
-        const maxBullets = 10;
 
-        let normalAcceleration = 0.3; // Default acceleration
-        let slowAcceleration = 0.1;   // Reduced acceleration when diamond is active
-        let currentAcceleration = normalAcceleration; // Track current acceleration
+        // 🎯 Speed & Difficulty
+        const mobileSpeedFactor = isMobile ? 0.5 : 1.0;
+        let backgroundSpeed = 5 * mobileSpeedFactor;
+        let obstacleSpeed = 1 * mobileSpeedFactor;
+        let collectibleSpeed = 1 * mobileSpeedFactor;
+        let normalAcceleration = 0.3, slowAcceleration = 0.1;
+        let currentAcceleration = normalAcceleration;
+        let slowMovementTimer = 0;
 
-        let slowMovementTimer = 0; // Timer for slow effect
-        // List of collectible objects in the game
-        let activeCollectibles = [];
-
-        const normalGravity = 0.3;
-        const mobileGravity = 0.15; // 🔽 Lower gravity for mobile
+        // 🌎 Environment
+        let groundLevel = canvas.height * 0.9;
+        let ceilingLevel = canvas.height * 0.1;
+        const normalGravity = 0.3, mobileGravity = 0.15;
         let gravity = isMobile ? mobileGravity : normalGravity;
 
-        // Ship properties
-        const shipWidth = 80;
-        const shipHeight = 40;
-        let shipX = canvas.width * 0.2;
-
-        // Create a ship glow effect
-        const shipGlow = {
-            radius: 20,
-            opacity: 0.5,
-            color: '#8a0303'
-        };
-
+        // 🔄 Objects & Obstacles
+        let obstacles = [];
         let stalactites = [];
-        let nextStalactiteTime = gameTime + Math.floor(Math.random() * 500) + 300; // Spawns every 500-1500 frames
+        let nextStalactiteTime = gameTime + Math.floor(Math.random() * 1000) + 500;
 
-        // Images for backgrounds and effects
+        // 🎨 Graphics & Effects
         const bgLayers = [];
         const numLayers = 3;
         let bgReady = false;
+        const shipGlow = { radius: 20, opacity: 0.5, color: '#8a0303' };
 
-        // Define obstacle patterns with emojis
-        // Define emoji obstacle shapes
-        const emojiShapes = [
-        { // Triangle of Thumbs Up 🤡
-            pattern: [
-                ["", "", "🤡", "", ""],
-                ["", "🤡", "🤡", "🤡", ""],
-                ["🤡", "🤡", "🤡", "🤡", "🤡"]
-            ],
-            type: "triangle"
-        },
-        { // Square of Poop 👾
-            pattern: [
-                ["👾", "👾", "👾"],
-                ["👾", "👾", "👾"],
-                ["👾", "👾", "👾"],
-                ["👾", "👾", "👾"],
-                ["👾", "👾", "👾"],
-            ],
-            type: "square"
-        },
-        { // Diamond (Losango) of Hearts 👽
-            pattern: [
-                ["", "", "👽", "", ""],
-                ["", "👽", "👽", "👽", ""],
-                ["👽", "👽", "👽", "👽", "👽"],
-                ["", "👽", "👽", "👽", ""],
-                ["", "", "👽", "", ""]
-            ],
-            type: "diamond"
-        },
-        { // Eyes
-            pattern: [
-                ["👀", "", "", "", "👀"],
-                ["👀", "👀", "", "👀", "👀"],
-                ["👀", "👀", "👀", "👀", "👀"],
-                ["👀", "👀", "", "👀", "👀"],
-                ["👀", "", "", "", "👀"]
-            ],
-            type: "eyes"
-        },
-        { // Bar
-            pattern: [
-                ["", "", "", "", ""],
-                ["", "", "", "", ""],
-                ["🟥", "🟥", "🟥", "🟥", "🟥"],
-                ["", "", "", "", ""],
-                ["", "", "", "", ""]
-            ],
-            type: "bar"
-        },
-        {
-            pattern: [
-                ["🥚", "🥚", "🥚"],
-                ["🥚", "🥚", "🥚"],
-                ["🥚", "🥚", "🥚"],
-                ["🥚", "🥚", "🥚"],
-                ["🥚", "🥚", "🥚"],
-                ["🥚", "🥚", "🥚"],
-            ],
-            type: "eggs"
-        },
-        {
-            pattern: [
-                ["",   "", "🐍"],
-                ["",   "🐍", ""],
-                ["🐍", "🐍", ""],
-                ["🐍", "🐍", ""],
-                ["",   "🐍", ""],
-                ["",   "", "🐍"],
-            ],
-            type: "eggs"
-        },
-        {
-            pattern: [
-                ["🦴","🦴", "🦴", "🦴"],
-                ["🦴","🦴", "🦴", "🦴"],
-                ["","", "🦴", "🦴"],
-                ["","", "🦴", "🦴"],
-                ["","", "🦴", "🦴"],
-                ["🦴","🦴", "🦴", "🦴"],
-                ["🦴","🦴", "🦴", "🦴"],
+        let obstaclesPassed = 0;
+        let bossActive = false;
+        let currentBoss = null;
+        let bossHits = 0;
+        let bossAngle = 0;
+        let bossRadius = 100;
+        let bossIndex = 0;
+        let bossRays = []; // Store boss rays
+        let bossShootInterval = 100; // Adjust time between shots
+        let lastBossShotTime = 0;
 
-            ],
-            type: "eggs"
-        }
+        const bosses = [
+            { emoji: "🐍", name: 'still', hits: 5, size: 100 },
+            { emoji: "🧌", name: 'still', hits: 7, size: 100 },
+            { emoji: "🧟‍♀️", name: 'circular', hits: 9, size: 100 },
+            { emoji: "🦹🏽‍♂️", name: 'still', hits: 9, size: 100 },
+            { emoji: "☣️", name: 'circular', hits: 9, size: 100 },
         ];
 
-        // Define collectible items
+        // 🏆 Collectibles & Inventory
+        let activeCollectibles = [];
+        let inventory = { "💀": 0, "💩": 0, "🔫": 0, "🐌": 0, "☢️": 0 };
         const collectibles = [
-            { emoji: "💀", name: "skull", points: 5, spawnRate: 0.5 },  // Common
-            { emoji: "💩", name: "ring", points: 10, spawnRate: 0.4 },  // Uncommon
-            { emoji: "🔫", name: "coconut", points: 15, spawnRate: 0.8 }, // Less Common
-            { emoji: "🐦‍🔥", name: "time", points: 10, spawnRate: 0.5 }, // Rare
-            { emoji: "☢️", name: "radiation", points: 10, spawnRate: 0.3 }, // Very Rare
-            { emoji: "🔋", name: "battery", points: 0, spawnRate: 0.3 }  // Uncommon
+            { emoji: "💀", name: "skull", points: 5, spawnRate: 0.6 },
+            { emoji: "💩", name: "ring", points: 10, spawnRate: 0.4 },
+            { emoji: "🔫", name: "coconut", points: 15, spawnRate: 0.9 },
+            { emoji: "🐌", name: "time", points: 10, spawnRate: 0.7 },
+            { emoji: "☢️", name: "radiation", points: 10, spawnRate: 0.3 },
+            { emoji: "🌪", name: "speedup", points: 0, spawnRate: 0.3 },
+            { emoji: "🔋", name: "battery", points: 100, spawnRate: 0.3 },
         ];
 
-        let inventory = { "💀": 0, "💩": 0, "🔫": 0, "🐦‍🔥": 0, "☢️": 0 };
 
+        // ⚠️ Obstacle Patterns
+        const emojiShapes = [
+            {
+                type: "triangle",
+                pattern: [
+                    ["",  "",  "💥", "",  "" ],
+                    ["",  "💥", "💥", "💥", "" ],
+                    ["💥", "💥", "💥", "💥", "💥"],
+                    ["",  "💥", "💥", "💥", "" ],
+                    ["",  "",  "💥", "",  "" ]
+                ]
+            },
+            {
+                type: "square",
+                pattern: [
+                    ["👾", "",  "👾"],
+                    ["👾", "", "👾"],
+                    ["👾", "👾", "👾"],
+                    ["👾", "", "👾"],
+                    ["👾", "",  "👾"]
+                ]
+            },
+            {
+                type: "diamond",
+                pattern: [
+                    ["",  "",  "👽", "",  "" ],
+                    ["",  "👽", "👽", "👽", "" ],
+                    ["👽", "👽", "👽", "👽", "👽"],
+                    ["",  "👽", "👽", "👽", "" ],
+                    ["",  "",  "👽", "",  "" ]
+                ]
+            },
+            {
+                type: "eyes",
+                pattern: [
+                    ["", "", "", "👀"],
+                    ["", "👀", "👀", ""],
+                    ["👀", "👀", "👀", ""],
+                    ["", "👀", "👀", ""],
+                    ["", "", "",  "👀"]
+                ]
+            },
+            {
+                type: "bar",
+                pattern: [
+                    ["",  "",  "",  "",  "" ],
+                    ["",  "",  "",  "",  "" ],
+                    ["🟥", "🟥", "🟥", "🟥", "🟥"],
+                    ["",  "",  "",  "",  "" ],
+                    ["",  "",  "",  "",  "" ]
+                ]
+            },
+            {
+                type: "moon",
+                pattern: [
+                    ["",  "🌑", " ",  "" ],
+                    ["",  "",  "🌑", "" ],
+                    ["",  "",  "",  "🌑"],
+                    ["",  "",  "",  "🌑"],
+                    ["",  "",  "🌑", "" ],
+                    ["",  "🌑", "",  "" ]
+                ]
+            },
+            {
+                type: "eggs",
+                pattern: [
+                    ["",  "",  "🐍"],
+                    ["",  "🐍", "" ],
+                    ["🐍", "🐍", "" ],
+                    ["🐍", "🐍", "" ],
+                    ["",  "🐍", "" ],
+                    ["",  "",  "🐍"]
+                ]
+            },
+            {
+                type: "bones",
+                pattern: [
+                    ["🦴", "🦴", "🦴", ""],
+                    ["", "🦴", "🦴", "🦴"],
+                    ["",  "",  "🦴", "🦴"],
+                    ["",  "",  "🦴", "🦴"],
+                    ["",  "",  "🦴", "🦴"],
+                    ["", "🦴", "🦴", "🦴"],
+                    ["🦴", "🦴", "🦴", ""]
+                ]
+            },
+            {
+                type: "square",
+                pattern: [
+                    ["🟨", "🟨", "🟨", "🟨"],
+                    ["", "", "🟨", ""],
+                    ["",  "",  "🟨", "🟨", "🟨", "🟨"],
+                    ["", "", "🟨", ""],
+                    ["🟨", "🟨", "🟨", "🟨"]
+                ]
+            },
+            {
+                type: "you",
+                pattern: [
+                    ["", "🫵🏼","", ""],
+                    ["🫵🏼", "🫵🏼", "🫵🏼","",],
+                    ["🫵🏼", "🫵🏼", "🫵🏼",""],
+                    ["🫵🏼", "🫵🏼", "🫵🏼","",],
+                    ["", "🫵🏼", "",""]
+                ],
+            }
+        ];
+
+
+        // 🔊 Sound Effects & Music
         const sounds = {
             startup: new Audio("startup.mp3"),
             music1: new Audio("background-layer-0.mp3"),
@@ -378,16 +410,17 @@
             shield: new Audio("shield.mp3"),
             life: new Audio("life.mp3"),
             loseLife: new Audio("lose-life.mp3"),
+            scratching: new Audio("scratching.mp3"),
             gameover: new Audio("gameover.mp3")
         };
 
         // 🎵 Configure Looping & Volume
-        sounds.music1.loop = true;
-        sounds.music1.volume = 0.3; // Adjust volume as needed
-        sounds.music2.loop = true;
-        sounds.music2.volume = 0.2; // Adjust volume as needed
-        sounds.music3.loop = true;
-        sounds.music3.volume = 0.4; // Adjust volume as needed
+        Object.values(sounds).forEach(sound => (sound.loop = false));
+        sounds.music1.loop = sounds.music2.loop = sounds.music3.loop = true;
+        sounds.music1.volume = 0.3;
+        sounds.music2.volume = 0.2;
+        sounds.music3.volume = 0.4;
+
 
         // 🚀 Play Background Music when the game starts
         function startMusic() {
@@ -421,6 +454,7 @@
 
         // Create a falling stalactite
         function createStalactite() {
+            if (isMobile) return;
             let baseWidth = 40 + Math.random() * 30; // Wider base
             let height = 60 + Math.random() * 50; // Taller stalactite
 
@@ -433,7 +467,6 @@
                 active: true // Track if it's still in the game
             };
             stalactites.push(stalactite);
-            console.log("🧊 Stalactite created!", stalactite);
         }
 
         // Draw stalactites
@@ -464,6 +497,8 @@
 
         // 🏗️ Update stalactites (falling effect)
         function updateStalactites() {
+            if (isMobile) return;
+
             for (let i = stalactites.length - 1; i >= 0; i--) {
                 let stalactite = stalactites[i];
                 stalactite.y += stalactite.speed; // Move downward
@@ -471,7 +506,6 @@
                 // Remove stalactites that go off the screen
                 if (stalactite.y > canvas.height) {
                     stalactites.splice(i, 1);
-                    console.log("💨 Stalactite removed (out of screen)");
                 }
 
                 // Check collision with the ship
@@ -481,7 +515,6 @@
                     shipY < stalactite.y + stalactite.height &&
                     shipY + shipHeight > stalactite.y
                 ) {
-                    console.log("💥 Stalactite hit the ship!");
                     loseLife();
                     stalactites.splice(i, 1);
                 }
@@ -501,6 +534,7 @@
                     size: 8,
                     speed: 10
                 });
+                armor--;
                 playSound("shoot");
             }
         }
@@ -514,6 +548,46 @@
                 if (bullets[i].x > canvas.width) {
                     bullets.splice(i, 1);
                     continue;
+                }
+
+                if (bossActive && currentBoss) {
+                    if (currentBoss.name === "circular") {
+                        // Loop through 5 orbiting emojis
+                        for (let j = 0; j < 5; j++) {
+                            let angle = bossAngle + (j * (Math.PI * 2 / 5));
+                            let bossX = currentBoss.x + Math.cos(angle) * bossRadius;
+                            let bossY = currentBoss.y + Math.sin(angle) * bossRadius;
+
+                            let bossSize = currentBoss.size * 0.7; // Adjust size for better hit detection
+
+                            if (
+                                bullets[i].x + bullets[i].size > bossX - bossSize / 2 &&
+                                bullets[i].x < bossX + bossSize / 2 &&
+                                bullets[i].y > bossY - bossSize / 2 &&
+                                bullets[i].y < bossY + bossSize / 2
+                            ) {
+                                bullets.splice(i, 1); // Remove bullet upon hit
+                                hitBoss();
+                                return;
+                            }
+                        }
+                    } else if (currentBoss.name === "still") {
+                        // ✅ Collision detection for "still" boss
+                        let bossSize = currentBoss.size * 3; // Boss is huge
+                        let bossX = currentBoss.x;
+                        let bossY = currentBoss.y;
+
+                        if (
+                            bullets[i].x + bullets[i].size > bossX - bossSize / 2 &&
+                            bullets[i].x < bossX + bossSize / 2 &&
+                            bullets[i].y > bossY - bossSize / 2 &&
+                            bullets[i].y < bossY + bossSize / 2
+                        ) {
+                            bullets.splice(i, 1); // Remove bullet upon hit
+                            hitBoss();
+                            return;
+                        }
+                    }
                 }
 
                 // Check collision with obstacles
@@ -535,7 +609,6 @@
                                     bullets[i].y > emojiY &&
                                     bullets[i].y < emojiY + obstacle.blockSize
                                 ) {
-                                    console.log(`🔥 Bullet destroyed ${emoji}`);
                                     obstacle.pattern[row][col] = ""; // Remove emoji
                                     bullets.splice(i, 1);
                                     score += 1;
@@ -553,24 +626,49 @@
                 laserBeam.x += laserBeam.speed;
                 if (laserBeam.x > canvas.width) laserBeam = null;
 
-                for (let i = obstacles.length - 1; i >= 0; i--) {
-                    let obstacle = obstacles[i];
-                    if (
-                        laserBeam &&
-                        laserBeam.x + laserBeam.width > obstacle.x &&
-                        laserBeam.x < obstacle.x + obstacle.width &&
-                        laserBeam.y > obstacle.y &&
-                        laserBeam.y < obstacle.y + obstacle.height
-                    ) {
-                        createExplosion(obstacle.x + obstacle.width / 2, obstacle.y + obstacle.height / 2);
-                        obstacles.splice(i, 1);
-                        armor -= 1;
-                        if (armor < 0) armor = 0;
-                        updateArmorBar();
-                        laserBeam = null;
-                        break;
+                if (bossActive && currentBoss) {
+                    if (currentBoss.name === "circular") {
+                        for (let j = 0; j < 5; j++) {
+                            let angle = bossAngle + (j * (Math.PI * 2 / 5));
+                            let bossX = currentBoss.x + Math.cos(angle) * bossRadius;
+                            let bossY = currentBoss.y + Math.sin(angle) * bossRadius;
+                            let bossSize = currentBoss.size * 0.7;
+
+                            // Check if any part of the laser intersects the boss hitbox
+                            if (
+                                laserBeam.x + laserBeam.width > bossX - bossSize / 2 && // Right edge of laser
+                                laserBeam.x < bossX + bossSize / 2 &&                  // Left edge of laser
+                                laserBeam.y > bossY - bossSize / 2 &&
+                                laserBeam.y < bossY + bossSize / 2
+                            ) {
+                                hitBoss();
+                                createExplosion(bossX, bossY);
+                                laserBeam = null; // Destroy laser on hit
+                                return;
+                            }
+                        }
+                    } else if (currentBoss.name === "still") {
+                        let bossSize = currentBoss.size * 3;
+                        let bossX = currentBoss.x;
+                        let bossY = currentBoss.y;
+
+                        // Check if any part of the laser intersects the boss hitbox
+                        if (
+                            laserBeam.x + laserBeam.width > bossX - bossSize / 2 &&
+                            laserBeam.x < bossX + bossSize / 2 &&
+                            laserBeam.y > bossY - bossSize / 2 &&
+                            laserBeam.y < bossY + bossSize / 2
+                        ) {
+                            hitBoss();
+                            createExplosion(bossX, bossY);
+                            laserBeam = null;
+                            return;
+                        }
                     }
                 }
+
+                // Destroy obstacles with laser (unchanged)
+                destroyObstaclesWithLaser();
             }
         }
 
@@ -585,34 +683,38 @@
         }
 
         function activateLaserMode() {
-            if (laserCooldown || armor <= 0) return;
+            if (laserCooldown || armor < 2) return;
 
             laserActive = true;
             laserCooldown = true;
             playSound("laser");
 
-            // Criar um novo feixe temporário
+            armor -= 2;
+            if (armor < 0) armor = 0;
+            updateArmorBar();
+
             laserBeam = {
                 x: shipX + shipWidth,
                 y: shipY + shipHeight / 2,
-                width: 10,
-                speed: 20
+                width: 900, // Consistent with collision detection
+                speed: 5 // Reduced from 20 to 5 for visibility testing
             };
+
+            console.log("Laser activated:", laserBeam); // Debug log
 
             setTimeout(() => {
                 laserActive = false;
                 laserBeam = null;
+                console.log("Laser deactivated"); // Debug log
                 setTimeout(() => {
                     laserCooldown = false;
-                }, 100); // Pequena pausa antes de permitir outro laser
-            }, 500); // O feixe dura apenas 100ms
+                }, 100);
+            }, 1000); // Increased to 1000ms for longer visibility
         }
-
 
         function drawLaser() {
             if (!laserBeam) return;
 
-            let beamLength = 900; // Make it longer for a sci-fi effect
             let beamThickness = 8; // Core thickness
             let glowThickness = 18; // Glow thickness
 
@@ -622,7 +724,7 @@
             ctx.lineWidth = beamThickness;
             ctx.beginPath();
             ctx.moveTo(laserBeam.x, laserBeam.y);
-            ctx.lineTo(laserBeam.x + beamLength, laserBeam.y);
+            ctx.lineTo(laserBeam.x + laserBeam.width, laserBeam.y); // Use laserBeam.width
             ctx.stroke();
 
             // **Outer Glow**
@@ -631,22 +733,21 @@
             ctx.lineWidth = glowThickness;
             ctx.beginPath();
             ctx.moveTo(laserBeam.x, laserBeam.y);
-            ctx.lineTo(laserBeam.x + beamLength, laserBeam.y);
+            ctx.lineTo(laserBeam.x + laserBeam.width, laserBeam.y);
             ctx.stroke();
 
-            // **Extra Flickering Effect (subtle randomness)**
+            // **Flickering Effect**
             if (Math.random() > 0.5) {
                 ctx.globalAlpha = 0.2;
                 ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
                 ctx.lineWidth = glowThickness + 4;
                 ctx.beginPath();
                 ctx.moveTo(laserBeam.x, laserBeam.y);
-                ctx.lineTo(laserBeam.x + beamLength, laserBeam.y);
+                ctx.lineTo(laserBeam.x + laserBeam.width, laserBeam.y);
                 ctx.stroke();
             }
 
-            // Reset global alpha
-            ctx.globalAlpha = 1;
+            ctx.globalAlpha = 1; // Reset alpha
         }
 
         function destroyObstaclesWithLaser() {
@@ -666,6 +767,116 @@
                     updateArmorBar();
                     laserBeam = null; // Destroy beam after hitting an obstacle
                     break;
+                }
+            }
+        }
+
+        function spawnBoss() {
+            if (bossIndex >= bosses.length) {
+                bossIndex = 0; // Loop back to the first boss if all are defeated
+            }
+
+            bossActive = true;
+            backgroundSpeed = 0.4;
+            obstacleSpeed = 0.4;
+            currentBoss = { ...bosses[bossIndex], x: canvas.width / 2, y: canvas.height / 2, size: 100 };
+            bossHits = currentBoss.hits;
+
+            updateArmorBar(); // Update UI
+        }
+
+        function spawnBossRays() {
+            if (!bossActive || !currentBoss) return;
+
+            let numRays = 5; // Number of rays
+            for (let i = 0; i < numRays; i++) {
+                // Calculate base direction to the ship
+                let dx = shipX - currentBoss.x;
+                let dy = shipY - currentBoss.y;
+                let baseAngle = Math.atan2(dy, dx); // Direction to the ship
+
+                // Add randomness (chaotic effect)
+                let randomOffset = (Math.random() - 0.5) * Math.PI / 3; // Adds up to ±30° deviation
+                let chaoticAngle = baseAngle + randomOffset;
+
+                let speed = 3 + Math.random() * 3; // Speed between 3 and 6
+
+                let newRay = {
+                    x: currentBoss.x,
+                    y: currentBoss.y,
+                    angle: chaoticAngle,  // Now fires in a more chaotic way
+                    speed: speed,
+                    size: 6
+                };
+
+                bossRays.push(newRay);
+            }
+        }
+
+        function drawBossRays() {
+            for (let ray of bossRays) {
+                ctx.beginPath();
+                ctx.arc(ray.x, ray.y, ray.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, ${50 + Math.random() * 100}, 50, 1)`;  // Slight randomization in color
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = "red";
+                ctx.fill();
+            }
+        }
+
+        function updateBossRays() {
+            for (let i = bossRays.length - 1; i >= 0; i--) {
+                let ray = bossRays[i];
+
+                // Move in the direction of the chaotic angle
+                ray.x += Math.cos(ray.angle) * ray.speed;
+                ray.y += Math.sin(ray.angle) * ray.speed;
+
+                // Remove rays if they go off-screen
+                if (ray.x < -10 || ray.y < -10 || ray.x > canvas.width + 10 || ray.y > canvas.height + 10) {
+                    bossRays.splice(i, 1);
+                }
+            }
+        }
+
+        function drawBoss() {
+            if (!bossActive || !currentBoss) return;
+
+            ctx.font = `${currentBoss.size*1.25}px Arial`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+
+            if (currentBoss.name === "circular") {
+                // Circular movement
+                for (let i = 0; i < 5; i++) {
+                    let angle = bossAngle + (i * (Math.PI * 2 / 5));
+                    let bossX = currentBoss.x + Math.cos(angle) * bossRadius;
+                    let bossY = currentBoss.y + Math.sin(angle) * bossRadius;
+                    ctx.fillText(currentBoss.emoji, bossX, bossY);
+                }
+                bossAngle += 0.01; // Slower circular movement
+
+            } else if (currentBoss.name === "still") {
+                // One large emoji standing still
+                ctx.font = `${currentBoss.size * 4}px Arial`; // Make it enormous
+                ctx.fillText(currentBoss.emoji, currentBoss.x, currentBoss.y);
+            }
+        }
+
+        function hitBoss() {
+            if (bossActive && bossHits > 0) {
+                bossHits--;
+                playSound("explosion"); // Play hit sound
+                createExplosion(currentBoss.x, currentBoss.y); // Show explosion effect
+
+                // ✅ If boss is defeated, remove it and restore game speed
+                if (bossHits <= 0) {
+                    bossActive = false;
+                    playSound("explosionAll"); // Big explosion sound when boss dies
+                    backgroundSpeed = 5;
+                    obstacleSpeed = 1;
+                    createExplosion(currentBoss.x, currentBoss.y);
+                    bossIndex++;
                 }
             }
         }
@@ -817,7 +1028,8 @@
         }
 
         function drawCollectibles() {
-            ctx.font = "20px Arial";  // Increased font size for visibility
+            ctx.font = "25px Arial";  // Increased font size for visibility
+            if (isMobile) ctx.font = "35px Arial";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
 
@@ -913,7 +1125,7 @@
             }
 
             // **EXTRA ARMOR (When Shooting is Enabled)**
-            if (armor > 0) {
+            if (inventory['🔫'] < 4 && armor > 0) {
                 ctx.fillStyle = "#666"; // Darker metallic armor
                 ctx.strokeStyle = "#BBB";
                 ctx.lineWidth = 2;
@@ -936,7 +1148,7 @@
                 ctx.fillRect(shipX + shipWidth * 0.6, shipY + shipHeight * 0.1, 8, 4);
                 ctx.fillRect(shipX + shipWidth * 0.6, shipY + shipHeight * 0.85, 8, 4);
             }
-            else if (inventory['🔫'] > 3 && armor > 0) {
+            else if (inventory['🔫'] >= 4 && armor > 0) {
                 ctx.strokeStyle = "cyan";
                 ctx.lineWidth = 4;
 
@@ -1131,6 +1343,74 @@
                 bottom: shipY + shipHeight - 5
             };
 
+            // ✅ Check collision with the Boss
+            if (bossActive && currentBoss) {
+                if (currentBoss.name === "circular") {
+                    // Loop through 5 orbiting emojis
+                    for (let i = 0; i < 5; i++) {
+                        let angle = bossAngle + (i * (Math.PI * 2 / 5));
+                        let bossX = currentBoss.x + Math.cos(angle) * bossRadius;
+                        let bossY = currentBoss.y + Math.sin(angle) * bossRadius;
+                        let bossSize = currentBoss.size * 0.7; // Adjust size for better collision
+
+                        // ✅ Collision check
+                        if (
+                            shipHitbox.right > bossX - bossSize / 2 &&
+                            shipHitbox.left < bossX + bossSize / 2 &&
+                            shipHitbox.bottom > bossY - bossSize / 2 &&
+                            shipHitbox.top < bossY + bossSize / 2
+                        ) {
+                            mana -= 0.5; // Lose mana upon collision
+                            if (mana <= 0) {
+                                loseLife(); // If mana runs out, lose a life
+                            }
+                            updateManaBar();
+                            playSound('scratching'); // Add a sound effect for damage
+                            return;
+                        }
+                    }
+                } else if (currentBoss.name === "still") {
+                    // Boss is one big emoji
+                    let bossSize = currentBoss.size * 3;
+                    let bossX = currentBoss.x;
+                    let bossY = currentBoss.y;
+
+                    // ✅ Collision check for still boss
+                    if (
+                        shipHitbox.right > bossX - bossSize / 2 &&
+                        shipHitbox.left < bossX + bossSize / 2 &&
+                        shipHitbox.bottom > bossY - bossSize / 2 &&
+                        shipHitbox.top < bossY + bossSize / 2
+                    ) {
+                        mana -= 0.5; // Lose mana upon collision
+                        if (mana <= 0) {
+                            loseLife();
+                        }
+                        updateManaBar();
+                        playSound('scratching');
+                    }
+                }
+            }
+
+            for (let i = bossRays.length - 1; i >= 0; i--) {
+                let ray = bossRays[i];
+
+                if (
+                    ray.x > shipHitbox.left &&
+                    ray.x < shipHitbox.right &&
+                    ray.y > shipHitbox.top &&
+                    ray.y < shipHitbox.bottom
+                ) {
+                    mana -= 2; // Lose mana
+                    if (mana <= 0) {
+                        loseLife();
+                    }
+                    updateManaBar();
+                    playSound('scratching');
+                    bossRays.splice(i, 1); // Remove the ray
+                }
+            }
+
             // ✅ **Check obstacle collisions**
             for (const obstacle of obstacles) {
                 if (obstacle.type === "emoji-block") {
@@ -1155,10 +1435,9 @@
                                 shipHitbox.bottom > emojiHitbox.top &&
                                 shipHitbox.top < emojiHitbox.bottom
                             ) {
-                                console.log("💥 Collision detected with an emoji!");
                                 mana -= .3;
                                 if (mana > .3) {
-                                    playSound('loseLife')
+                                    playSound('scratching')
                                 }
                                 updateManaBar();
                                 shipFlicker = true;
@@ -1196,7 +1475,6 @@
                     shipHitbox.top < itemHitbox.bottom
                 ) {
                     playSound("collect");
-                    console.log(`✅ Collected: ${item.name}`);
                     score += item.points;
 
                     inventory[item.emoji]++;
@@ -1206,7 +1484,6 @@
 
                     // **Apply effects**
                     if (item.emoji === "💀") {
-                        console.log("⚡ Invincibility Activated!");
                         invincible = true;
                         invincibleTimer = 2500;
                         playSound("shield");
@@ -1216,31 +1493,22 @@
                         setTimeout(() => { shipGlow.radius = 20; }, 500); // Reset after 500ms
                     }
 
-                    if (item.emoji === "🐦‍🔥") {
-                        console.log("🐦‍🔥 Time Slowdown Activated!");
+                    if (item.emoji === "🐌") {
                         slowDownTime();
+                    }
+
+                    if (item.emoji === "🌪") {
+                        speedUpTime();
                     }
 
                     if (item.emoji === "🔫") {
                         inventory["🔫"]++;
                         armor += 10; // Increase armor
                         updateArmorBar();
-
-                        // Apply the first armor skin when collecting the first gun
-                        if (inventory["🔫"] === 1) {
-                            shipHasArmorSkin = true;
-                        }
-
-                        // Apply the laser skin when collecting three guns
-                        if (inventory["🔫"] >= 3) {
-                            shipHasLaserSkin = true;
-                        }
-
                         updateInventoryDisplay();
                     }
 
                     if (item.emoji === "💩") {
-                        console.log("💩 Diamond collected! Movement sensitivity reduced!");
                         currentAcceleration = slowAcceleration;
                         slowMovementTimer = 1500;
                     }
@@ -1248,11 +1516,9 @@
                     if (item.emoji === "🔋") {
                         mana = Math.min(mana + 30, maxMana); // Recupera 30 de mana sem ultrapassar o máximo
                         updateManaBar();
-                        console.log("⚡ Mana recuperada!");
                     }
 
                     if (item.emoji === "☢️") {
-                        console.log("☢️ RADIATION EXPLOSION ACTIVATED!");
                         explodeAllObstacles();
                     }
                 }
@@ -1260,19 +1526,20 @@
         }
 
         function slowDownTime() {
-            window.isTimeSlowed = true;
-
-            const originalSpeed = obstacleSpeed; // Store the original speed
-            const originalBackgroundSpeed = backgroundSpeed; // Store the original speed
-
-            obstacleSpeed *= 0.4; // Slow down time (reduce speed by half)
-            backgroundSpeed *= .4;
-            console.log("Game slowed down!");
+            obstacleSpeed *= 0.5; // Slow down time (reduce speed by half)
+            backgroundSpeed *= .5;
 
             // Restore speed after 5 seconds
             setTimeout(() => {
-                console.log("Game speed restored!");
-                window.isTimeSlowed = false; // Allow future slowdowns
+            }, 5000);
+        }
+
+        function speedUpTime() {
+            obstacleSpeed *= 1.3; // Slow down time (reduce speed by half)
+            backgroundSpeed *= 1.3;
+
+            // Restore speed after 5 seconds
+            setTimeout(() => {
             }, 5000);
         }
 
@@ -1295,7 +1562,6 @@
                 obstacles.splice(i, 1);
             }
 
-            console.log("💥 ALL OBSTACLES DESTROYED!");
         }
 
         function loseLife() {
@@ -1306,13 +1572,13 @@
             playSound("explosion");
 
             lives--; // Subtract 1 life
-            console.log(`💥 Ship hit! Lives left: ${lives}`);
 
             createExplosion(shipX + shipWidth / 2, shipY + shipHeight / 2); // Generate explosion effect
 
             // **Stop ship movement, obstacles, but keep explosion running**
             shipVelocity = 0;
             shipXVelocity = 0;
+            mana = 0;
 
             setTimeout(() => {
                 isExploding = false; // Stop explosion effect after delay
@@ -1327,16 +1593,17 @@
                     gameOverScoreDisplay.textContent = `${score}`;
                 }
 
-            }, 2000); // 2-second delay before restarting
+                mana = maxMana; // Reseta a mana ao perder uma vida
+                armor = 0; // Reset armor
+                inventory["🔫"] = 0;
+                updateInventoryDisplay()
+                updateArmorBar()
+                updateManaBar();
 
-            mana = maxMana; // Reseta a mana ao perder uma vida
-            armor = 0; // Reset armor
-            inventory["🔫"] = 0;
-            updateManaBar();
+            }, 2000); // 2-second delay before restarting
         }
 
         function restartAfterHit() {
-            console.log("⏪ Restarting after hit...");
 
             // Reset explosion state
             isHit = false;
@@ -1355,7 +1622,7 @@
             invincible = true;
             invincibleTimer = 600;
 
-            inventory['x'] = 0
+            inventory['🔫'] = 0
 
             canShoot = false;
             shootTimer = 0;
@@ -1470,9 +1737,10 @@
                 invincibleTimer--;
                 if (invincibleTimer <= 0) {
                     invincible = false;
-                    console.log("Invincibility Over!");
                 }
             }
+
+            let speedFactor = isMobile ? 0.5 : 1.0;
 
             // Move ship vertically
             shipVelocity += gravity;
@@ -1512,11 +1780,30 @@
 
             updateParticles();
 
+            if (bossActive && gameTime - lastBossShotTime > bossShootInterval) {
+                console.log("Boss atirando rays!"); // 🔍 Verificar se está chamando
+                spawnBossRays();
+                lastBossShotTime = gameTime;
+            }
+
+            updateBossRays();
+
             // Move obstacles using `obstacleSpeed`
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 obstacles[i].x -= obstacleSpeed;
                 if (obstacles[i].x < -obstacles[i].width) {
                     obstacles.splice(i, 1);
+                }
+            }
+
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].x -= obstacleSpeed;
+                if (obstacles[i].x < -obstacles[i].width) {
+                    obstacles.splice(i, 1);
+                    obstaclesPassed++;
+                    if (obstaclesPassed % 10 == 0) {
+                        spawnBoss();
+                    }
                 }
             }
 
@@ -1550,7 +1837,6 @@
                 shootTimer--;
                 if (shootTimer <= 0) {
                     canShoot = false;
-                    console.log("🐦‍🔥 Shooting ability expired!");
                 }
             }
 
@@ -1558,7 +1844,6 @@
                 slowMovementTimer--;
                 if (slowMovementTimer <= 0) {
                     currentAcceleration = normalAcceleration;
-                    console.log("🐦‍🔥 Diamond effect over! Movement back to normal.");
                 }
             }
 
@@ -1566,7 +1851,7 @@
 
             // Update UI
             scoreDisplay.innerHTML = `Score\n${score}`;
-            document.getElementById('lives').innerHTML = `❤️ Vidas ${lives}`;
+            document.getElementById('lives').innerHTML = `❤️ ${lives}`;
         }
 
 
@@ -1574,16 +1859,21 @@
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            drawBackground();   // Draw background first
-            drawObstacles();    // Then obstacles
+            drawBackground();   // Background first
+            drawObstacles();    // Obstacles
             drawStalactites();
-            drawParticles();    // Then ship trail
+            drawParticles();    // Ship trail
             drawCollectibles();
 
-            if (!isHit) drawShip();  // ❌ Hide ship if hit
-            drawExplosion();  // Draw explosion effect
+            if (!isHit) drawShip();  // Ship unless hit
+            drawBoss();
+            drawBossRays();
 
-            drawGroundAndCeiling(); // Finally, draw ceiling & ground
+            drawBullets();      // Bullets
+            drawLaser();        // Laser after ship and obstacles
+            drawExplosion();    // Explosions on top
+
+            drawGroundAndCeiling(); // Ground and ceiling last
         }
 
         function updateInventoryDisplay() {
@@ -1592,25 +1882,20 @@
                 💀 ${inventory["💀"]}
                 💩 ${inventory["💩"]}
                 🔫 ${inventory["🔫"]}
-                🐦‍🔥 ${inventory["🐦‍🔥"]}
+                🐌 ${inventory["🐌"]}
                 ☢️ ${inventory["☢️"]}`
         }
 
-
-        // Game loop
         function gameLoop() {
             if (!gameOver) {
-                if (!isExploding) { // 🚨 Only stop updates, not rendering
+                if (!isExploding) {
                     updateGame();
                     updateShooting();
                 }
-                updateExplosion(); // ✅ Always update explosion effect
+                updateExplosion();
             }
 
-            draw();
-            drawBullets();
-            drawLaser();
-            drawExplosion(); // ✅ Ensure explosion is drawn
+            draw(); // All drawing happens here
 
             requestAnimationFrame(gameLoop);
         }
@@ -1628,7 +1913,6 @@
 
         // Restart the game
         restartButton.addEventListener('click', () => {
-            console.log("🔄 Restarting game...");
 
             // Stop any ongoing animations
             cancelAnimationFrame(gameLoop);
@@ -1655,11 +1939,10 @@
             // Reset obstacles, collectibles, and inventory
             obstacles = [];
             activeCollectibles = [];
-            let inventory = { "💀": 0, "💩": 0, "🔫": 0, "🐦‍🔥": 0, "☢️": 0 };
+            let inventory = { "💀": 0, "💩": 0, "🔫": 0, "🐌": 0, "☢️": 0 };
 
             // Reset timers and speeds
             lastObstacleTime = 0;
-            lastCollectibleTime = 0;
             gameTime = 0;
             lives = 5;
             invincible = false;
@@ -1668,7 +1951,7 @@
             // Reset UI
             score = 0;
             scoreDisplay.textContent = `Score\n${score}`;
-            document.getElementById('lives').innerHTML = `❤️ Vidas ${lives}`;
+            document.getElementById('lives').innerHTML = `❤️ ${lives}`;
             updateInventoryDisplay();
 
             // Reset background and start fresh
@@ -1681,11 +1964,10 @@
         function checkLifeGain() {
             let inventorySum = Object.values(inventory).reduce((sum, value) => sum + value, 0);
 
-            if (inventorySum > 0 && inventorySum % 10 === 0) {
+            if (inventorySum > 0 && inventorySum % 15 === 0) {
                 lives++;
                 playSound('life')
-                console.log(`🎉 Extra life awarded! Lives: ${lives}`);
-                document.getElementById('lives').innerHTML = `❤️ Vidas ${lives}`;
+                document.getElementById('lives').innerHTML = `❤️ ${lives}`;
             }
         }
 
@@ -1715,10 +1997,10 @@
                 ceilingLevel = canvas.height * 0.2;
 
                 if (/iPhone|iPad|Android|Mobile/i.test(navigator.userAgent)) {
-                    groundLevel = canvas.height * 0.95; // 📱 5% ceiling/floor
-                    ceilingLevel = canvas.height * 0.05;
+                    groundLevel = canvas.height * 0.95;
+                    ceilingLevel = canvas.height * 0.15;
                 } else {
-                    groundLevel = canvas.height * 0.9; // 🖥️ 10% ceiling/floor
+                    groundLevel = canvas.height * 0.9;
                     ceilingLevel = canvas.height * 0.1;
                 }
 
@@ -1749,9 +2031,6 @@
 
         // Start animation
         gameLoop();
-
-        // Check for game over in a separate interval
-        setInterval(handleGameOver, 100);
     </script>
 </body>
 </html>
