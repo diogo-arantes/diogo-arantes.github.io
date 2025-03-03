@@ -545,11 +545,12 @@ code[class*="language-"] {
 }
 
 .conteudo-item {
-  background: #333;
-  padding: 20px;
-  border-radius: 8px;
-  text-align: left;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    background: #3333338c;
+    backdrop-filter: blur(3px);
+    padding: 20px;
+    border-radius: 8px;
+    text-align: left;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .conteudo-item p {
@@ -635,13 +636,14 @@ body.modal-aberto {
 
 /* Ajusta o estilo do conteúdo no modal */
 .conteudo-completo h3 {
-    font-size: 24px;
+    font-size: 20px;
+    margin-top: 15px;
     margin-bottom: 15px;
 }
 
 .conteudo-completo p, li {
     color: #ccc;
-    font-weight: 500;
+    font-weight: 400;
     font-size: 18px;
     line-height: 1.6;
 }
@@ -667,7 +669,7 @@ body.modal-aberto {
 
 .conteudos-ocultos h1, h2 {
   color: #4CAF50;
-  margin: 10px 0 10px 0;
+  margin: 20px 0 10px 0;
 }
 .conteudos-ocultos h1 {
   margin: 0 0 20px 0;
@@ -675,7 +677,8 @@ body.modal-aberto {
   font-size: 35px;
 }
 .conteudos-ocultos p {
-    line-height: 1.6;
+    line-height: 2;
+    font-weight: 400;
     color: #e9e9e9;
 }
 .conteudos-ocultos ul {

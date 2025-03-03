@@ -266,13 +266,14 @@
 
         // Define collectible items
         const collectibles = [
-        { emoji: "💧", name: "red drop", points: 5 },
-        { emoji: "💎", name: "ring", points: 10 },
-        { emoji: "🥥", name: "coconut", points: 15 },
-        { emoji: "⏳", name: "time", points: 10 }
+            { emoji: "💀", name: "skull", points: 5 },
+            { emoji: "💩", name: "ring", points: 10 },
+            { emoji: "🔫", name: "coconut", points: 15 },
+            { emoji: "🐦‍🔥", name: "time", points: 10 },
+            { emoji: "☢️", name: "radiation", points: 10 }
         ];
 
-        let inventory = { "💧": 0, "💎": 0, "🥥": 0, "⏳": 0 };
+        let inventory = { "💀": 0, "💩": 0, "🔫": 0, "🐦‍🔥": 0, "☢️": 0 };
 
         const sounds = {
             music1: new Audio("background-layer-0.mp3"),  // Background music
@@ -428,15 +429,15 @@
         const explosionParticles = [];
 
         function createExplosion(x, y) {
-            for (let i = 0; i < 40; i++) { // More particles for a bigger explosion
+            for (let i = 0; i < 50; i++) { // More particles for a stronger effect
                 explosionParticles.push({
                     x: x,
                     y: y,
-                    size: 4 + Math.random() * 6,
-                    speedX: (Math.random() - 0.5) * 8,
-                    speedY: (Math.random() - 0.5) * 8,
-                    life: 40 + Math.random() * 20,
-                    color: `rgba(255, ${50 + Math.random() * 150}, 0, 1)` // Red-Orange explosion
+                    size: 5 + Math.random() * 12, // Bigger explosion
+                    speedX: (Math.random() - 0.5) * 10,
+                    speedY: (Math.random() - 0.5) * 10,
+                    life: 50 + Math.random() * 30, // Lasts longer
+                    color: `rgba(255, ${50 + Math.random() * 150}, 0, 1)`
                 });
             }
         }
@@ -539,8 +540,6 @@
             }
         }
 
-
-
         function drawCollectibles() {
             ctx.font = "20px Arial";  // Increased font size for visibility
             ctx.textAlign = "center";
@@ -621,6 +620,21 @@
             ctx.beginPath();
             ctx.arc(shipX + shipWidth * 0.45, shipY + shipHeight * 0.5, shipHeight * 0.15, 0, Math.PI * 2);
             ctx.fill();
+
+            // 🎇 **Invincible Mode Glow Effect**
+            if (invincible) {
+                let invincibleGlow = ctx.createRadialGradient(
+                    shipX + shipWidth / 2, shipY + shipHeight / 2, 10,
+                    shipX + shipWidth / 2, shipY + shipHeight / 2, 50
+                );
+                invincibleGlow.addColorStop(0, "rgba(255, 255, 255, 0.8)");
+                invincibleGlow.addColorStop(1, "rgba(255, 255, 255, 0)");
+
+                ctx.fillStyle = invincibleGlow;
+                ctx.beginPath();
+                ctx.arc(shipX + shipWidth / 2, shipY + shipHeight / 2, 40, 0, Math.PI * 2);
+                ctx.fill();
+            }
 
             // **EXTRA ARMOR (When Shooting is Enabled)**
             if (canShoot) {
@@ -890,34 +904,43 @@
                     activeCollectibles.splice(i, 1); // Remove collected item
 
                     // **Apply effects**
-                    if (item.emoji === "💧") {
+                    if (item.emoji === "💀") {
                         console.log("⚡ Invincibility Activated!");
                         invincible = true;
-                        invincibleTimer = 1200;
+                        invincibleTimer = 2500;
+
+                        // ✨ Boost the ship glow when collecting a drop
+                        shipGlow.radius = 40; // Temporarily increase glow
+                        setTimeout(() => { shipGlow.radius = 20; }, 500); // Reset after 500ms
                     }
 
-                    if (item.emoji === "⏳") {
-                        console.log("⏳ Time Slowdown Activated!");
+                    if (item.emoji === "🐦‍🔥") {
+                        console.log("🐦‍🔥 Time Slowdown Activated!");
                         slowDownTime();
                     }
 
-                    if (item.emoji === "🥥") {
+                    if (item.emoji === "🔫") {
                         canShoot = true;
                         shootTimer = 1500;
                         console.log("🚀 Shooting enabled!");
                     }
 
-                    if (item.emoji === "💎") {
-                        console.log("💎 Diamond collected! Movement sensitivity reduced!");
+                    if (item.emoji === "💩") {
+                        console.log("💩 Diamond collected! Movement sensitivity reduced!");
                         currentAcceleration = slowAcceleration;
                         slowMovementTimer = 1500;
+                    }
+
+                    if (item.emoji === "☢️") {
+                        console.log("☢️ RADIATION EXPLOSION ACTIVATED!");
+                        explodeAllObstacles();
                     }
                 }
             }
         }
 
         function slowDownTime() {
-            if (window.isTimeSlowed) return; // Prevent multiple slowdowns at the same time
+
             window.isTimeSlowed = true;
 
             const originalSpeed = obstacleSpeed; // Store the original speed
@@ -933,6 +956,28 @@
                 console.log("Game speed restored!");
                 window.isTimeSlowed = false; // Allow future slowdowns
             }, 5000);
+        }
+
+        function explodeAllObstacles() {
+            if (obstacles.length === 0) return;
+
+            playSound("explosion");
+
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obstacle = obstacles[i];
+
+                // Get obstacle position and size
+                let explosionX = obstacle.x + obstacle.width / 2;
+                let explosionY = obstacle.y + obstacle.height / 2;
+
+                // Create explosion effect
+                createExplosion(explosionX, explosionY);
+
+                // Remove obstacle from game
+                obstacles.splice(i, 1);
+            }
+
+            console.log("💥 ALL OBSTACLES DESTROYED!");
         }
 
         function loseLife() {
@@ -1025,8 +1070,8 @@
                 isMoving = true; // Mark as a movement (not a tap)
 
                 // **Allow diagonal movement naturally**
-                shipXVelocity += (deltaX * adjustedTouchSensitivity) * 0.01;
-                shipVelocity += (deltaY * adjustedTouchSensitivity) * 0.05;
+                shipXVelocity += (deltaX * adjustedTouchSensitivity) * 0.02;
+                shipVelocity += (deltaY * adjustedTouchSensitivity) * 0.08;
 
                 // **Update last touch position for smoother movement**
                 touchStartX = touchX;
@@ -1050,9 +1095,7 @@
 
             // **Detect a tap (not a swipe) → SHOOT**
             if (!isMoving && timeDiff < tapThreshold && Math.abs(deltaX) < minMovement && Math.abs(deltaY) < minMovement) {
-                if (touchStartX > window.innerWidth / 2) {
-                    shootBullet();
-                }
+                shootBullet();
             }
 
             // Reset touch tracking
@@ -1060,8 +1103,6 @@
             touchStartY = null;
             touchStartTime = null;
         });
-
-
 
 
         window.addEventListener('keydown', e => {
@@ -1075,7 +1116,6 @@
                 shootBullet();
             }
         });
-
 
         function handleInput() {
             if (keys['w'] || keys['W'] || keys['ArrowUp']) {
@@ -1178,7 +1218,7 @@
                 shootTimer--;
                 if (shootTimer <= 0) {
                     canShoot = false;
-                    console.log("⏳ Shooting ability expired!");
+                    console.log("🐦‍🔥 Shooting ability expired!");
                 }
             }
 
@@ -1186,7 +1226,7 @@
                 slowMovementTimer--;
                 if (slowMovementTimer <= 0) {
                     currentAcceleration = normalAcceleration;
-                    console.log("⏳ Diamond effect over! Movement back to normal.");
+                    console.log("🐦‍🔥 Diamond effect over! Movement back to normal.");
                 }
             }
 
@@ -1216,9 +1256,11 @@
         function updateInventoryDisplay() {
             const inventoryDisplay = document.getElementById('inventory');
             inventoryDisplay.innerHTML = `
-                💎 ${inventory["💎"]}
-                🥥 ${inventory["🥥"]}
-                💧 ${inventory["💧"]}`;
+                💀 ${inventory["💀"]}
+                💩 ${inventory["💩"]}
+                🔫 ${inventory["🔫"]}
+                🐦‍🔥 ${inventory["🐦‍🔥"]}
+                ☢️ ${inventory["☢️"]}`
         }
 
         // Game loop
@@ -1278,7 +1320,7 @@
             // Reset obstacles, collectibles, and inventory
             obstacles = [];
             activeCollectibles = [];
-            inventory = { "💧": 0, "💎": 0, "🥥": 0, "⏳": 0 };
+            let inventory = { "💀": 0, "💩": 0, "🔫": 0, "🐦‍🔥": 0, "☢️": 0 };
 
             // Reset timers and speeds
             lastObstacleTime = 0;
