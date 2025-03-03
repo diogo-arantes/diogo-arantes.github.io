@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Advanced Creature Emotion Visualization</title>
+
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      background-color: #121212;
+      color: #e0e0e0;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 800px;
+    }
+    h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+      background: linear-gradient(90deg, #ff9a9e 0%, #fad0c4 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-align: center;
+    }
+    p.subtitle {
+      margin-top: 0;
+      opacity: 0.8;
+      font-style: italic;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .controls-panel {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      background-color: #1e1e1e;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      margin-bottom: 20px;
+    }
+    .slider-container {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    .slider-container label {
+      width: 150px;
+      font-weight: 500;
+    }
+    input[type="range"] {
+      flex-grow: 1;
+      height: 6px;
+      background: linear-gradient(90deg, #ff416c 0%, #ff4b2b 100%);
+      border-radius: 3px;
+      appearance: none;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      background: #ffffff;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+    .slider-value {
+      margin-left: 15px;
+      width: 50px;
+      text-align: center;
+      font-weight: bold;
+      color: #ffffff;
+      background-color: #2d2d2d;
+      padding: 5px;
+      border-radius: 5px;
+    }
+    .presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+      margin-bottom: 15px;
+    }
+    .preset-btn {
+      background: #2d2d2d;
+      color: #e0e0e0;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 14px;
+    }
+    .preset-btn:hover {
+      background: #3d3d3d;
+      transform: translateY(-2px);
+    }
+    .emotion-display {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+    }
+    .emotion-label {
+      font-size: 26px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+      transition: all 0.5s ease;
+    }
+    .canvas-container {
+      position: relative;
+      width: 100%;
+      background: radial-gradient(circle, #2d2d2d 0%, #1a1a1a 100%);
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    #canvas {
+      width: 100%;
+      height: 600px;
+      display: block;
+    }
+    .emotion-stats {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      width: 100%;
+      margin-top: 20px;
+    }
+    .stat-box {
+      width: calc(33% - 10px);
+      background-color: #1e1e1e;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+    .stat-title {
+      font-size: 14px;
+      opacity: 0.7;
+      margin-bottom: 5px;
+    }
+    .stat-value {
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .animation-controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .control-btn {
+      background: linear-gradient(90deg, #8e2de2 0%, #4a00e0 100%);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+    .control-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(138, 43, 226, 0.4);
+    }
+    .loading {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+      color: white;
+      font-size: 20px;
+      display: none;
+    }
+    .secondary-controls {
+      margin-top: 15px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    .color-picker-container {
+      display: flex;
+      align-items: center;
+    }
+    .color-picker-container label {
+      margin-right: 10px;
+    }
+    .feature-toggle {
+      display: flex;
+      align-items: center;
+    }
+    .feature-toggle label {
+      margin-right: 10px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Advanced Creature Emotion Visualization</h1>
+  <p class="subtitle">An interactive emotional expression system with detailed face morphology</p>
+
+  <!-- Controls -->
+  <div class="controls-panel">
+    <div class="slider-container">
+      <label for="sentimentSlider" aria-label="Emotional State Slider">Emotional State (0-10):</label>
+      <input
+        type="range"
+        id="sentimentSlider"
+        min="0"
+        max="10"
+        step="0.1"
+        value="5"
+        role="slider"
+        aria-valuemin="0"
+        aria-valuemax="10"
+      />
+      <span id="sentimentValue" class="slider-value">5.0</span>
+    </div>
+
+    <div class="presets">
+      <button class="preset-btn" data-value="0">Dead (0)</button>
+      <button class="preset-btn" data-value="1">Despairing (1)</button>
+      <button class="preset-btn" data-value="2.5">Sad (2.5)</button>
+      <button class="preset-btn" data-value="4">Concerned (4)</button>
+      <button class="preset-btn" data-value="5">Neutral (5)</button>
+      <button class="preset-btn" data-value="6.5">Content (6.5)</button>
+      <button class="preset-btn" data-value="8">Happy (8)</button>
+      <button class="preset-btn" data-value="9.5">Euphoric (9.5)</button>
+    </div>
+
+    <div class="secondary-controls">
+      <div class="color-picker-container">
+        <label for="creatureColor">Creature Color:</label>
+        <input type="color" id="creatureColor" value="#f8e9c5" aria-label="Creature Color Picker"/>
+      </div>
+
+      <div class="feature-toggle">
+        <label for="detailLevel">Detail Level:</label>
+        <select id="detailLevel" aria-label="Detail Level">
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+      </div>
+
+      <div class="feature-toggle">
+        <input type="checkbox" id="animateFeatures" checked aria-label="Animate Features Checkbox"/>
+        <label for="animateFeatures">Animate Features</label>
+      </div>
+    </div>
+
+    <div class="animation-controls">
+      <button id="animateBtn" class="control-btn">Animate Emotional Range</button>
+      <button id="randomizeBtn" class="control-btn">Randomize Expression</button>
+      <button id="resetBtn" class="control-btn">Reset</button>
+    </div>
+  </div>
+
+  <!-- Display -->
+  <div class="emotion-display">
+    <div id="emotionLabel" class="emotion-label">NEUTRAL</div>
+
+    <div class="canvas-container">
+      <div id="loading" class="loading">Loading...</div>
+      <svg id="canvas" viewBox="0 0 200 200"></svg>
+    </div>
+
+    <div class="emotion-stats">
+      <div class="stat-box">
+        <div class="stat-title">Energy Level</div>
+        <div id="energyStat" class="stat-value">50%</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-title">Emotional Intensity</div>
+        <div id="intensityStat" class="stat-value">Medium</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-title">Facial Tension</div>
+        <div id="tensionStat" class="stat-value">45%</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-title">Eye Openness</div>
+        <div id="eyeStat" class="stat-value">70%</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-title">Mouth Expression</div>
+        <div id="mouthStat" class="stat-value">Neutral</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-title">Autonomic Response</div>
+        <div id="autonomicStat" class="stat-value">Normal</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  /****************************************
+   * DOM ELEMENTS & INITIAL REFERENCES
+   ****************************************/
+  const elements = {
+    sentimentSlider: document.getElementById('sentimentSlider'),
+    sentimentValue: document.getElementById('sentimentValue'),
+    emotionLabel:   document.getElementById('emotionLabel'),
+    canvas:         document.getElementById('canvas'),
+    loadingEl:      document.getElementById('loading'),
+    animateBtn:     document.getElementById('animateBtn'),
+    randomizeBtn:   document.getElementById('randomizeBtn'),
+    resetBtn:       document.getElementById('resetBtn'),
+    creatureColorPicker: document.getElementById('creatureColor'),
+    detailLevelSelect:   document.getElementById('detailLevel'),
+    animateFeaturesToggle: document.getElementById('animateFeatures'),
+    // Stats
+    energyStat:     document.getElementById('energyStat'),
+    intensityStat:  document.getElementById('intensityStat'),
+    tensionStat:    document.getElementById('tensionStat'),
+    eyeStat:        document.getElementById('eyeStat'),
+    mouthStat:      document.getElementById('mouthStat'),
+    autonomicStat:  document.getElementById('autonomicStat'),
+  };
+
+  // Animation state
+  let animationInProgress = false;
+  let animationFrame = null;
+  let currentSentiment = 5; // default
+
+  // Creature feature flags (example usage)
+  const creatureFeatures = {
+    hasHorns: true,
+    hasAntennas: true,
+    hasFreckles: true,
+    hasScales: false,
+    earStyle: 'pointed', // or 'round'
+    eyeShape: 'almond'
+  };
+
+  /****************************************
+   * UTILITY FUNCTIONS
+   ****************************************/
+  function shadeColor(color, percent) {
+    // Simple color shading utility
+    let R = parseInt(color.substring(1, 3), 16);
+    let G = parseInt(color.substring(3, 5), 16);
+    let B = parseInt(color.substring(5, 7), 16);
+
+    R = parseInt((R * (100 + percent)) / 100);
+    G = parseInt((G * (100 + percent)) / 100);
+    B = parseInt((B * (100 + percent)) / 100);
+
+    R = (R < 255) ? R : 255;
+    G = (G < 255) ? G : 255;
+    B = (B < 255) ? B : 255;
+
+    return `rgb(${R},${G},${B})`;
+  }
+
+  // Creates an SVG element of a given type, with the given attributes
+  function createSVGElement(type, attrs = {}) {
+    const el = document.createElementNS("http://www.w3.org/2000/svg", type);
+    for (const [key, val] of Object.entries(attrs)) {
+      el.setAttribute(key, val);
+    }
+    return el;
+  }
+
+  // Show or hide loading overlay
+  function setLoadingVisibility(isVisible) {
+    elements.loadingEl.style.display = isVisible ? 'flex' : 'none';
+  }
+
+  /****************************************
+   * CREATURE INIT & DRAWING
+   ****************************************/
+  function initCreature() {
+    // Clear canvas
+    while (elements.canvas.firstChild) {
+      elements.canvas.removeChild(elements.canvas.firstChild);
+    }
+
+    // Create layers
+    const backgroundLayer = createSVGElement("g", { id: "backgroundLayer" });
+    const baseLayer       = createSVGElement("g", { id: "baseLayer" });
+    const detailLayer     = createSVGElement("g", { id: "detailLayer" });
+    const expressionLayer = createSVGElement("g", { id: "expressionLayer" });
+    const effectsLayer    = createSVGElement("g", { id: "effectsLayer" });
+    const defs            = createSVGElement("defs");
+
+    elements.canvas.appendChild(backgroundLayer);
+    elements.canvas.appendChild(baseLayer);
+    elements.canvas.appendChild(detailLayer);
+    elements.canvas.appendChild(expressionLayer);
+    elements.canvas.appendChild(effectsLayer);
+    elements.canvas.appendChild(defs);
+
+    // Define filters & gradients
+    createFilters(defs);
+    createGradients(defs);
+
+    // Background circle
+    const backgroundCircle = createSVGElement("circle", {
+      cx: "100", cy: "100", r: "95",
+      fill: "rgba(255, 255, 255, 0.02)",
+      stroke: "rgba(255, 255, 255, 0.05)",
+      "stroke-width": "1"
+    });
+    backgroundLayer.appendChild(backgroundCircle);
+
+    // Draw the creature’s head + ears + eyes + mouth
+    drawHead(baseLayer);
+    drawEars(baseLayer, detailLayer);
+    drawEyes(baseLayer);
+    drawMouth(baseLayer);
+  }
+
+  function createFilters(defs) {
+    // Glow Filter
+    const glowFilter = createSVGElement("filter", {
+      id: "glow", x: "-50%", y: "-50%", width: "200%", height: "200%"
+    });
+    const feGaussianBlur = createSVGElement("feGaussianBlur", {
+      stdDeviation: "2.5", result: "coloredBlur"
+    });
+    glowFilter.appendChild(feGaussianBlur);
+
+    const feMerge = createSVGElement("feMerge");
+    feMerge.appendChild(createSVGElement("feMergeNode", { in: "coloredBlur" }));
+    feMerge.appendChild(createSVGElement("feMergeNode", { in: "SourceGraphic" }));
+    glowFilter.appendChild(feMerge);
+    defs.appendChild(glowFilter);
+
+    // Drop Shadow Filter
+    const dropShadowFilter = createSVGElement("filter", {
+      id: "dropShadow", x: "-50%", y: "-50%", width: "200%", height: "200%"
+    });
+    const feDropShadowBlur = createSVGElement("feGaussianBlur", {
+      in: "SourceAlpha", stdDeviation: "3", result: "blur"
+    });
+    dropShadowFilter.appendChild(feDropShadowBlur);
+    const feOffset = createSVGElement("feOffset", {
+      in: "blur", dx: "0", dy: "4", result: "offsetBlur"
+    });
+    dropShadowFilter.appendChild(feOffset);
+    const feFlood = createSVGElement("feFlood", {
+      "flood-color": "rgba(0,0,0,0.3)", "flood-opacity": "1", result: "shadowColor"
+    });
+    dropShadowFilter.appendChild(feFlood);
+    const feComposite = createSVGElement("feComposite", {
+      in: "shadowColor", in2: "offsetBlur", operator: "in", result: "shadowColorIn"
+    });
+    dropShadowFilter.appendChild(feComposite);
+
+    const feMergeShadow = createSVGElement("feMerge");
+    feMergeShadow.appendChild(createSVGElement("feMergeNode", { in: "shadowColorIn" }));
+    feMergeShadow.appendChild(createSVGElement("feMergeNode", { in: "SourceGraphic" }));
+    dropShadowFilter.appendChild(feMergeShadow);
+
+    defs.appendChild(dropShadowFilter);
+  }
+
+  function createGradients(defs) {
+    // Eye Gradient
+    const eyeGradient = createSVGElement("radialGradient", {
+      id: "eyeGradient", cx: "50%", cy: "50%", r: "50%"
+    });
+    eyeGradient.appendChild(createSVGElement("stop", { offset: "0%", "stop-color": "#ffffff" }));
+    eyeGradient.appendChild(createSVGElement("stop", { offset: "90%", "stop-color": "#f0f0f0" }));
+    defs.appendChild(eyeGradient);
+
+    // Pupil Gradient
+    const pupilGradient = createSVGElement("radialGradient", {
+      id: "pupilGradient", cx: "40%", cy: "40%", r: "60%"
+    });
+    pupilGradient.appendChild(createSVGElement("stop", { offset: "0%", "stop-color": "#444444" }));
+    pupilGradient.appendChild(createSVGElement("stop", { offset: "95%", "stop-color": "#000000" }));
+    defs.appendChild(pupilGradient);
+
+    // Head Gradient (initial)
+    const headGradient = createSVGElement("linearGradient", {
+      id: "headGradient", x1: "0%", y1: "0%", x2: "100%", y2: "100%"
+    });
+    const color = elements.creatureColorPicker.value;
+    headGradient.appendChild(
+      createSVGElement("stop", { offset: "0%", "stop-color": shadeColor(color, 20) })
+    );
+    headGradient.appendChild(
+      createSVGElement("stop", { offset: "100%", "stop-color": shadeColor(color, -20) })
+    );
+    defs.appendChild(headGradient);
+
+    // Lip/Tongue Gradients (just some details)
+    const lipGradient = createSVGElement("linearGradient", {
+      id: "lipGradient", x1: "0%", y1: "0%", x2: "0%", y2: "100%"
+    });
+    lipGradient.appendChild(createSVGElement("stop", { offset: "0%", "stop-color": "#ff9999" }));
+    lipGradient.appendChild(createSVGElement("stop", { offset: "100%", "stop-color": "#cc6666" }));
+    defs.appendChild(lipGradient);
+
+    const tongueGradient = createSVGElement("linearGradient", {
+      id: "tongueGradient", x1: "0%", y1: "0%", x2: "0%", y2: "100%"
+    });
+    tongueGradient.appendChild(createSVGElement("stop", { offset: "0%", "stop-color": "#ff9999" }));
+    tongueGradient.appendChild(createSVGElement("stop", { offset: "100%", "stop-color": "#ff6666" }));
+    defs.appendChild(tongueGradient);
+  }
+
+  function drawHead(baseLayer) {
+    const head = createSVGElement("ellipse", {
+      cx: "100", cy: "100", rx: "65", ry: "75",
+      fill: "url(#headGradient)",
+      stroke: shadeColor(elements.creatureColorPicker.value, -30),
+      "stroke-width": "1",
+      filter: "url(#dropShadow)"
+    });
+    baseLayer.appendChild(head);
+  }
+
+  function drawEars(baseLayer, detailLayer) {
+    const color = elements.creatureColorPicker.value;
+
+    // Pointed vs round ears
+    if (creatureFeatures.earStyle === 'pointed') {
+      // Left ear
+      const leftEar = createSVGElement("path", {
+        d: "M40,70 Q25,45 35,30 Q45,45 40,70",
+        fill: shadeColor(color, 10),
+        stroke: shadeColor(color, -30),
+        "stroke-width": "1"
+      });
+      baseLayer.appendChild(leftEar);
+
+      // Right ear
+      const rightEar = createSVGElement("path", {
+        d: "M160,70 Q175,45 165,30 Q155,45 160,70",
+        fill: shadeColor(color, 10),
+        stroke: shadeColor(color, -30),
+        "stroke-width": "1"
+      });
+      baseLayer.appendChild(rightEar);
+
+      // Inner ear detail
+      const leftInnerEar = createSVGElement("path", {
+        d: "M40,68 Q30,50 36,40",
+        fill: "none",
+        stroke: shadeColor(color, -20),
+        "stroke-width": "0.75"
+      });
+      detailLayer.appendChild(leftInnerEar);
+
+      const rightInnerEar = createSVGElement("path", {
+        d: "M160,68 Q170,50 164,40",
+        fill: "none",
+        stroke: shadeColor(color, -20),
+        "stroke-width": "0.75"
+      });
+      detailLayer.appendChild(rightInnerEar);
+
+    } else if (creatureFeatures.earStyle === 'round') {
+      // Round ears
+      const leftEar = createSVGElement("circle", {
+        cx: "45", cy: "50", r: "15",
+        fill: shadeColor(color, 10),
+        stroke: shadeColor(color, -30),
+        "stroke-width": "1"
+      });
+      baseLayer.appendChild(leftEar);
+
+      const rightEar = createSVGElement("circle", {
+        cx: "155", cy: "50", r: "15",
+        fill: shadeColor(color, 10),
+        stroke: shadeColor(color, -30),
+        "stroke-width": "1"
+      });
+      baseLayer.appendChild(rightEar);
+
+      // Inner ear detail
+      const leftInnerEar = createSVGElement("circle", {
+        cx: "45", cy: "50", r: "8",
+        fill: shadeColor(color, -10)
+      });
+      detailLayer.appendChild(leftInnerEar);
+
+      const rightInnerEar = createSVGElement("circle", {
+        cx: "155", cy: "50", r: "8",
+        fill: shadeColor(color, -10)
+      });
+      detailLayer.appendChild(rightInnerEar);
+    }
+  }
+
+  function drawEyes(baseLayer) {
+    // Group for left eye
+    const leftEyeGroup = createSVGElement("g", { id: "leftEye" });
+    baseLayer.appendChild(leftEyeGroup);
+
+    // Group for right eye
+    const rightEyeGroup = createSVGElement("g", { id: "rightEye" });
+    baseLayer.appendChild(rightEyeGroup);
+
+    // Default shapes
+    const leftEyeWhite = createSVGElement("circle", {
+      cx: "75", cy: "100", r: "15",
+      fill: "url(#eyeGradient)"
+    });
+    leftEyeGroup.appendChild(leftEyeWhite);
+
+    const leftPupil = createSVGElement("circle", {
+      cx: "75", cy: "100", r: "6",
+      fill: "url(#pupilGradient)"
+    });
+    leftEyeGroup.appendChild(leftPupil);
+
+    const rightEyeWhite = createSVGElement("circle", {
+      cx: "125", cy: "100", r: "15",
+      fill: "url(#eyeGradient)"
+    });
+    rightEyeGroup.appendChild(rightEyeWhite);
+
+    const rightPupil = createSVGElement("circle", {
+      cx: "125", cy: "100", r: "6",
+      fill: "url(#pupilGradient)"
+    });
+    rightEyeGroup.appendChild(rightPupil);
+  }
+
+  function drawMouth(baseLayer) {
+    // Simple default mouth
+    const mouth = createSVGElement("path", {
+      d: "M80,130 Q100,150 120,130",
+      stroke: "black", "stroke-width": "3", fill: "none"
+    });
+    baseLayer.appendChild(mouth);
+  }
+
+  /****************************************
+   * EMOTION / EXPRESSION UPDATES
+   ****************************************/
+  function updateEmotionDisplay(sentiment) {
+    currentSentiment = parseFloat(sentiment);
+    updateFacialExpression(currentSentiment);
+    updateEmotionStats(currentSentiment);
+    updateEmotionLabel(currentSentiment);
+  }
+
+  function updateFacialExpression(sentiment) {
+    setLoadingVisibility(true);
+    // Simulate short delay (e.g., heavy computation)
+    setTimeout(() => {
+      updateCreatureColors(elements.creatureColorPicker.value);
+      redrawEyesAndEyebrows(sentiment);
+      redrawMouth(sentiment);
+      redrawEffects(sentiment);
+      setLoadingVisibility(false);
+    }, 200);
+  }
+
+  function redrawEyesAndEyebrows(sentiment) {
+    const eyeSize = 10 + (sentiment * 0.8);
+    const pupilSize = 4 + (sentiment * 0.4);
+    const eyeHeight = 100 - (sentiment - 5) * 3;
+
+    // Left & right eye groups
+    const leftEye = document.getElementById('leftEye');
+    const rightEye = document.getElementById('rightEye');
+
+    // Clear old eyes
+    while (leftEye.firstChild) leftEye.removeChild(leftEye.firstChild);
+    while (rightEye.firstChild) rightEye.removeChild(rightEye.firstChild);
+
+    // Draw new shapes
+    createEyeShape(leftEye, 75, eyeHeight, eyeSize, pupilSize, sentiment);
+    createEyeShape(rightEye, 125, eyeHeight, eyeSize, pupilSize, sentiment);
+
+    // Eyebrows
+    const expressionLayer = document.getElementById('expressionLayer');
+    // Remove old eyebrows
+    const prevEyebrows = expressionLayer.querySelectorAll('.eyebrow');
+    prevEyebrows.forEach(brow => expressionLayer.removeChild(brow));
+
+    const [leftD, rightD] = getEyebrowPaths(sentiment, eyeHeight);
+    const eyebrowColor = shadeColor(elements.creatureColorPicker.value, -50);
+
+    const leftEyebrow = createSVGElement("path", {
+      class: "eyebrow", d: leftD,
+      fill: "none",
+      stroke: eyebrowColor,
+      "stroke-width": "2",
+      "stroke-linecap": "round"
+    });
+    const rightEyebrow = createSVGElement("path", {
+      class: "eyebrow", d: rightD,
+      fill: "none",
+      stroke: eyebrowColor,
+      "stroke-width": "2",
+      "stroke-linecap": "round"
+    });
+    expressionLayer.appendChild(leftEyebrow);
+    expressionLayer.appendChild(rightEyebrow);
+  }
+
+  function createEyeShape(eyeGroup, cx, cy, eyeSize, pupilSize, sentiment) {
+    const eyeWhite = createSVGElement("ellipse", {
+      cx, cy,
+      rx: eyeSize,
+      ry: (sentiment < 2) ? (eyeSize * 0.3) : (eyeSize * 0.8),
+      fill: "url(#eyeGradient)",
+      stroke: "#444",
+      "stroke-width": "0.5"
+    });
+    eyeGroup.appendChild(eyeWhite);
+
+    const pupil = createSVGElement("circle", {
+      cx, cy,
+      r: pupilSize,
+      fill: "url(#pupilGradient)"
+    });
+    eyeGroup.appendChild(pupil);
+
+    // Happy sparkle
+    if (sentiment > 7) {
+      const sparkle = createSVGElement("circle", {
+        cx: cx - 3, cy: cy - 3,
+        r: "2", fill: "#fff"
+      });
+      eyeGroup.appendChild(sparkle);
+    }
+  }
+
+  function getEyebrowPaths(sentiment, eyeHeight) {
+    let leftPath = "", rightPath = "";
+
+    if (sentiment < 4) {
+      // Sad or angry
+      leftPath  = `M60,${eyeHeight - 15} Q75,${eyeHeight - 18 + (5-sentiment)*2} 90,${eyeHeight - 12}`;
+      rightPath = `M110,${eyeHeight - 12} Q125,${eyeHeight - 18 + (5-sentiment)*2} 140,${eyeHeight - 15}`;
+    } else if (sentiment > 6) {
+      // Happy or surprised
+      leftPath  = `M60,${eyeHeight - 15 - (sentiment-5)} Q75,${eyeHeight - 20 - (sentiment-5)} 90,${eyeHeight - 15 - (sentiment-5)}`;
+      rightPath = `M110,${eyeHeight - 15 - (sentiment-5)} Q125,${eyeHeight - 20 - (sentiment-5)} 140,${eyeHeight - 15 - (sentiment-5)}`;
+    } else {
+      // Neutral
+      leftPath  = `M60,${eyeHeight - 15} Q75,${eyeHeight - 17} 90,${eyeHeight - 15}`;
+      rightPath = `M110,${eyeHeight - 15} Q125,${eyeHeight - 17} 140,${eyeHeight - 15}`;
+    }
+    return [leftPath, rightPath];
+  }
+
+  function redrawMouth(sentiment) {
+    const mouthCurvature = (sentiment - 5) * 6;
+    const baseLayer = document.getElementById('baseLayer');
+    const prevMouth = baseLayer.querySelector('path[stroke="black"]');
+    if (prevMouth) baseLayer.removeChild(prevMouth);
+
+    if (sentiment > 8) {
+      // big open mouth with teeth
+      const mouthGroup = createSVGElement("g");
+      const outerMouth = createSVGElement("path", {
+        d: `M75,130 Q100,145 125,130 Q100,160 75,130`,
+        fill: "#ff9988"
+      });
+      const teeth = createSVGElement("path", {
+        d: `M80,135 H120 V140 H80 Z`,
+        fill: "white"
+      });
+      mouthGroup.appendChild(outerMouth);
+      mouthGroup.appendChild(teeth);
+      baseLayer.appendChild(mouthGroup);
+    } else {
+      const mouth = createSVGElement("path", {
+        d: getMouthPath(sentiment, mouthCurvature),
+        stroke: "#333",
+        "stroke-width": "3",
+        fill: "none"
+      });
+      baseLayer.appendChild(mouth);
+    }
+  }
+
+  function getMouthPath(sentiment, mouthCurvature) {
+    if (sentiment < 2) {
+      return `M80,130 Q100,${130 - mouthCurvature} 120,130`;
+    } else if (sentiment < 5) {
+      return `M80,130 Q100,${130 - mouthCurvature} 120,130`;
+    } else if (sentiment < 7) {
+      return `M80,130 Q100,${130 + mouthCurvature} 120,130`;
+    } else {
+      // bigger smile
+      return `M75,130 Q100,${130 + mouthCurvature} 125,130`;
+    }
+  }
+
+  function redrawEffects(sentiment) {
+    // Clear previous effects
+    const effectsLayer = document.getElementById('effectsLayer');
+    while (effectsLayer.firstChild) {
+      effectsLayer.removeChild(effectsLayer.firstChild);
+    }
+
+    const detailLevel = elements.detailLevelSelect.value;
+
+    // Cheek Blush if happy
+    if (detailLevel !== 'low' && sentiment > 7) {
+      const leftCheek = createSVGElement("circle", {
+        cx: "65", cy: "120", r: "10",
+        fill: "rgba(255, 150, 150, 0.5)"
+      });
+      const rightCheek = createSVGElement("circle", {
+        cx: "135", cy: "120", r: "10",
+        fill: "rgba(255, 150, 150, 0.5)"
+      });
+      effectsLayer.appendChild(leftCheek);
+      effectsLayer.appendChild(rightCheek);
+    }
+
+    // Tears if sad
+    if (detailLevel !== 'low' && sentiment < 2.5) {
+      const eyeHeight = 100 - (sentiment - 5) * 3;
+      const leftTear = createSVGElement("path", {
+        d: `M70,${eyeHeight + 10} q-2,10 0,20 q2,10 5,0 q3,-10 0,-20 q-2,-10 -5,0`,
+        fill: "rgba(150, 200, 255, 0.7)"
+      });
+      effectsLayer.appendChild(leftTear);
+
+      if (sentiment < 1.5) {
+        const rightTear = createSVGElement("path", {
+          d: `M130,${eyeHeight + 12} q-2,10 0,20 q2,10 5,0 q3,-10 0,-20 q-2,-10 -5,0`,
+          fill: "rgba(150, 200, 255, 0.7)"
+        });
+        effectsLayer.appendChild(rightTear);
+      }
+    }
+
+    // Nose
+    const nose = createSVGElement("ellipse", {
+      cx: "100", cy: "115", rx: "5", ry: "3",
+      fill: shadeColor(elements.creatureColorPicker.value, -20)
+    });
+    effectsLayer.appendChild(nose);
+
+    // High detail extras
+    if (detailLevel === 'high') {
+      if (creatureFeatures.hasFreckles) {
+        addFreckles(effectsLayer);
+      }
+      addWrinklesOrLaughLines(effectsLayer, sentiment);
+    }
+
+    // If animate features toggled and sentiment extreme, add special animations
+    if (elements.animateFeaturesToggle.checked && (sentiment < 2 || sentiment > 8)) {
+      if (sentiment > 8) {
+        createSparkles(effectsLayer);
+      } else if (sentiment < 2) {
+        createRaindrops(effectsLayer);
+      }
+    }
+  }
+
+  function addFreckles(effectsLayer) {
+    const color = elements.creatureColorPicker.value;
+    const frecklesGroup = createSVGElement("g");
+    const frecklePositions = [
+      { x: 75, y: 115 }, { x: 85, y: 110 }, { x: 70, y: 105 },
+      { x: 125, y: 115 }, { x: 115, y: 110 }, { x: 130, y: 105 }
+    ];
+    frecklePositions.forEach(pos => {
+      const freckle = createSVGElement("circle", {
+        cx: pos.x, cy: pos.y, r: "1.5",
+        fill: shadeColor(color, -40)
+      });
+      frecklesGroup.appendChild(freckle);
+    });
+    effectsLayer.appendChild(frecklesGroup);
+  }
+
+  function addWrinklesOrLaughLines(effectsLayer, sentiment) {
+    const color = shadeColor(elements.creatureColorPicker.value, -20);
+    const eyeHeight = 100 - (sentiment - 5) * 3;
+
+    if (sentiment < 2) {
+      // Sad wrinkles
+      const leftWrinkle = createSVGElement("path", {
+        d: `M60,${eyeHeight - 5} Q75,${eyeHeight} 90,${eyeHeight - 5}`,
+        fill: "none", stroke: color, "stroke-width": "0.5"
+      });
+      const rightWrinkle = createSVGElement("path", {
+        d: `M110,${eyeHeight - 5} Q125,${eyeHeight} 140,${eyeHeight - 5}`,
+        fill: "none", stroke: color, "stroke-width": "0.5"
+      });
+      effectsLayer.appendChild(leftWrinkle);
+      effectsLayer.appendChild(rightWrinkle);
+    } else if (sentiment > 8) {
+      // Happy laugh lines
+      const leftLaughLine = createSVGElement("path", {
+        d: `M65,115 Q60,120 65,125`,
+        fill: "none", stroke: color, "stroke-width": "0.75"
+      });
+      const rightLaughLine = createSVGElement("path", {
+        d: `M135,115 Q140,120 135,125`,
+        fill: "none", stroke: color, "stroke-width": "0.75"
+      });
+      effectsLayer.appendChild(leftLaughLine);
+      effectsLayer.appendChild(rightLaughLine);
+    }
+  }
+
+  function createSparkles(effectsLayer) {
+    for (let i = 0; i < 5; i++) {
+      const sparkle = createSVGElement("circle", {
+        r: (1 + Math.random() * 2).toString(),
+        fill: "#FFD700",
+        filter: "url(#glow)"
+      });
+      const angle = Math.random() * Math.PI * 2;
+      const distance = 60 + Math.random() * 20;
+      const x = 100 + Math.cos(angle) * distance;
+      const y = 100 + Math.sin(angle) * distance;
+
+      sparkle.setAttribute("cx", x);
+      sparkle.setAttribute("cy", y);
+      effectsLayer.appendChild(sparkle);
+
+      // Animate sparkle
+      if (window.requestAnimationFrame) {
+        let opacity = 1;
+        let size = parseFloat(sparkle.getAttribute("r"));
+        function animate() {
+          opacity -= 0.01;
+          size += 0.05;
+          if (opacity > 0) {
+            sparkle.setAttribute("r", size.toString());
+            sparkle.setAttribute("fill-opacity", opacity.toString());
+            requestAnimationFrame(animate);
+          } else {
+            effectsLayer.removeChild(sparkle);
+          }
+        }
+        requestAnimationFrame(animate);
+      }
+    }
+  }
+
+  function createRaindrops(effectsLayer) {
+    for (let i = 0; i < 3; i++) {
+      const tear = createSVGElement("circle", {
+        cx: (70 + Math.random() * 60).toString(),
+        cy: "150",
+        r: "2",
+        fill: "rgba(150, 200, 255, 0.7)"
+      });
+      effectsLayer.appendChild(tear);
+
+      if (window.requestAnimationFrame) {
+        let posY = 150;
+        function animateTear() {
+          posY += 1;
+          if (posY < 190) {
+            tear.setAttribute("cy", posY.toString());
+            requestAnimationFrame(animateTear);
+          } else {
+            effectsLayer.removeChild(tear);
+          }
+        }
+        requestAnimationFrame(animateTear);
+      }
+    }
+  }
+
+  function updateCreatureColors(color) {
+    // Head gradient
+    const headGradient = document.getElementById('headGradient');
+    const stops = headGradient.getElementsByTagName('stop');
+    stops[0].setAttribute("stop-color", shadeColor(color, 20));
+    stops[1].setAttribute("stop-color", shadeColor(color, -20));
+
+    // Update any existing head stroke
+    const baseLayer = document.getElementById("baseLayer");
+    const head = baseLayer.querySelector("ellipse");
+    if (head) {
+      head.setAttribute("stroke", shadeColor(color, -30));
+    }
+
+    // Update ears
+    const ears = baseLayer.querySelectorAll("path, circle");
+    ears.forEach(ear => {
+      // If the fill was originally tinted with the old color, update it
+      ear.setAttribute("fill", shadeColor(color, 10));
+      ear.setAttribute("stroke", shadeColor(color, -30));
+    });
+  }
+
+  /****************************************
+   * UPDATE STATS & LABEL
+   ****************************************/
+  function updateEmotionStats(sentiment) {
+    const energyLevel = Math.abs((sentiment - 5) * 2) * 10;
+    elements.energyStat.textContent = `${Math.round(energyLevel)}%`;
+
+    let intensity;
+    if (sentiment < 2 || sentiment > 8) {
+      intensity = "High";
+    } else if (sentiment < 4 || sentiment > 6) {
+      intensity = "Medium";
+    } else {
+      intensity = "Low";
+    }
+    elements.intensityStat.textContent = intensity;
+
+    const tension = Math.abs((sentiment - 5) * 2) * 9;
+    elements.tensionStat.textContent = `${Math.round(tension)}%`;
+
+    const eyeOpenness = (sentiment < 3)
+      ? 40 + sentiment * 10
+      : 70 + (sentiment - 5) * 5;
+    elements.eyeStat.textContent = `${Math.min(100, Math.round(eyeOpenness))}%`;
+
+    let mouthExpr;
+    if (sentiment < 2) {
+      mouthExpr = "Very Sad";
+    } else if (sentiment < 4) {
+      mouthExpr = "Sad";
+    } else if (sentiment < 5.5) {
+      mouthExpr = "Neutral";
+    } else if (sentiment < 7.5) {
+      mouthExpr = "Happy";
+    } else {
+      mouthExpr = "Very Happy";
+    }
+    elements.mouthStat.textContent = mouthExpr;
+
+    let autonomic;
+    if (sentiment < 2) {
+      autonomic = "Crying";
+    } else if (sentiment < 4) {
+      autonomic = "Downcast";
+    } else if (sentiment < 6) {
+      autonomic = "Normal";
+    } else if (sentiment < 8) {
+      autonomic = "Animated";
+    } else {
+      autonomic = "Excited";
+    }
+    elements.autonomicStat.textContent = autonomic;
+  }
+
+  function updateEmotionLabel(sentiment) {
+    let label;
+    if (sentiment <= 0.5) {
+      label = "DEAD";
+    } else if (sentiment <= 1.5) {
+      label = "DESPAIRING";
+    } else if (sentiment <= 3) {
+      label = "SAD";
+    } else if (sentiment < 4.5) {
+      label = "CONCERNED";
+    } else if (sentiment < 5.5) {
+      label = "NEUTRAL";
+    } else if (sentiment < 7) {
+      label = "CONTENT";
+    } else if (sentiment < 9) {
+      label = "HAPPY";
+    } else {
+      label = "EUPHORIC";
+    }
+    elements.emotionLabel.textContent = label;
+  }
+
+  /****************************************
+   * EMOTION RANGE ANIMATION
+   ****************************************/
+  function animateEmotionalRange() {
+    if (animationInProgress) {
+      cancelAnimationFrame(animationFrame);
+      animationInProgress = false;
+      elements.animateBtn.textContent = "Animate Emotional Range";
+      return;
+    }
+    animationInProgress = true;
+    elements.animateBtn.textContent = "Stop Animation";
+
+    let direction = 1;
+    let animatedSentiment = 0;
+
+    function stepAnimation() {
+      animatedSentiment += direction * 0.05;
+      if (animatedSentiment >= 10) {
+        animatedSentiment = 10;
+        direction = -1;
+      } else if (animatedSentiment <= 0) {
+        animatedSentiment = 0;
+        direction = 1;
+      }
+      elements.sentimentSlider.value = animatedSentiment.toString();
+      elements.sentimentValue.textContent = animatedSentiment.toFixed(1);
+      updateEmotionDisplay(animatedSentiment);
+
+      if (animationInProgress) {
+        animationFrame = requestAnimationFrame(stepAnimation);
+      }
+    }
+    animationFrame = requestAnimationFrame(stepAnimation);
+  }
+
+  /****************************************
+   * EVENT LISTENERS
+   ****************************************/
+  // Sentiment slider
+  elements.sentimentSlider.addEventListener("input", function () {
+    const val = parseFloat(this.value);
+    elements.sentimentValue.textContent = val.toFixed(1);
+    updateEmotionDisplay(val);
+  });
+
+  // Animate emotional range button
+  elements.animateBtn.addEventListener("click", animateEmotionalRange);
+
+  // Randomize expression
+  elements.randomizeBtn.addEventListener("click", function() {
+    const randomSentiment = Math.random() * 10;
+    elements.sentimentSlider.value = randomSentiment.toString();
+    elements.sentimentValue.textContent = randomSentiment.toFixed(1);
+    updateEmotionDisplay(randomSentiment);
+  });
+
+  // Reset
+  elements.resetBtn.addEventListener("click", function() {
+    elements.sentimentSlider.value = "5";
+    elements.sentimentValue.textContent = "5.0";
+    updateEmotionDisplay(5);
+  });
+
+  // Color picker
+  elements.creatureColorPicker.addEventListener("input", function () {
+    // Only recolor the existing creature pieces
+    updateCreatureColors(this.value);
+  });
+
+  // Detail level
+  elements.detailLevelSelect.addEventListener("change", function() {
+    updateEmotionDisplay(elements.sentimentSlider.value);
+  });
+
+  // Animate features toggle
+  elements.animateFeaturesToggle.addEventListener("change", function() {
+    updateEmotionDisplay(elements.sentimentSlider.value);
+  });
+
+  // Preset buttons
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const presetValue = parseFloat(this.getAttribute('data-value'));
+      elements.sentimentSlider.value = presetValue.toString();
+      elements.sentimentValue.textContent = presetValue.toFixed(1);
+      updateEmotionDisplay(presetValue);
+    });
+  });
+
+  // Initialize
+  document.addEventListener("DOMContentLoaded", function() {
+    initCreature();
+    updateEmotionDisplay(5);
+  });
+</script>
+</body>
+</html>

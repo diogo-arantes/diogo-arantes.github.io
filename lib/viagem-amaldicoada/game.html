@@ -122,6 +122,38 @@
             color: white;
             z-index: 5;">
         </div>
+        <div id="mana-bar-container" style="
+            position: absolute;
+            top: 20px;
+            left: 150px;
+            width: 120px;
+            height: 15px;
+            background: rgb(34, 0, 0);
+            border-radius: 5px;
+            overflow: hidden;
+            border: 2px solid rgb(83, 0, 0);">
+            <div id="mana-bar" style="
+                width: 100%;
+                height: 100%;
+                background: rgb(255, 9, 9);
+                transition: width 0.2s;"></div>
+        </div>
+        <div id="armor-bar-container" style="
+            position: absolute;
+            top: 20px;
+            left: 280px;
+            width: 120px;
+            height: 15px;
+            background: rgb(34, 0, 0);
+            border-radius: 5px;
+            overflow: hidden;
+            border: 2px solid rgb(0, 19, 83);">
+            <div id="armor-bar" style="
+                width: 0%;
+                height: 100%;
+                background: rgb(75, 9, 255);
+                transition: width 0.2s;"></div>
+        </div>
 
         <div id="start-screen">
             <h1>VIAGEM AMALDIÇOADA</h1>
@@ -156,6 +188,8 @@
         let gameStarted = false;
         let gameOver = false;
         let score = 0;
+        let maxMana = 100;
+        let mana = maxMana;
         let shipY = canvas.height / 2;
         let shipVelocity = 0;
         let backgroundSpeed = 5; // Independent background scrolling speed
@@ -177,8 +211,33 @@
         let isHit = false; // To track ship blinking effect
         let hitTimer = 0;  // Timer for blinking animation
 
+        // Initialize armor system
+        let maxArmor = 100;
+        let armor = 0;
         let laserActive = false;
         let laserDuration = 2500; // Laser lasts 500 frames (~8 seconds)
+        let laserBeam = null;
+
+        let invincible = false;
+        let invincibleTimer = 0;
+
+        let bullets = [];
+        let laserCooldown = false;
+        let canShoot = false; // Starts as false, enabled when a coconut is collected
+        const bulletSpeed = 10;
+        const bulletSize = 8;
+        let shootTimer = 0;
+        // Initialize bullet count
+        let bulletCount = 0;
+        const maxBullets = 10;
+
+        let normalAcceleration = 0.3; // Default acceleration
+        let slowAcceleration = 0.1;   // Reduced acceleration when diamond is active
+        let currentAcceleration = normalAcceleration; // Track current acceleration
+
+        let slowMovementTimer = 0; // Timer for slow effect
+        // List of collectible objects in the game
+        let activeCollectibles = [];
 
         const normalGravity = 0.3;
         const mobileGravity = 0.15; // 🔽 Lower gravity for mobile
@@ -195,6 +254,9 @@
             opacity: 0.5,
             color: '#8a0303'
         };
+
+        let stalactites = [];
+        let nextStalactiteTime = gameTime + Math.floor(Math.random() * 500) + 300; // Spawns every 500-1500 frames
 
         // Images for backgrounds and effects
         const bgLayers = [];
@@ -291,27 +353,31 @@
 
         // Define collectible items
         const collectibles = [
-            { emoji: "💀", name: "skull", points: 5 },
-            { emoji: "💩", name: "ring", points: 10 },
-            { emoji: "🔫", name: "coconut", points: 15 },
-            { emoji: "🐦‍🔥", name: "time", points: 10 },
-            { emoji: "☢️", name: "radiation", points: 10 }
+            { emoji: "💀", name: "skull", points: 5, spawnRate: 0.5 },  // Common
+            { emoji: "💩", name: "ring", points: 10, spawnRate: 0.4 },  // Uncommon
+            { emoji: "🔫", name: "coconut", points: 15, spawnRate: 0.8 }, // Less Common
+            { emoji: "🐦‍🔥", name: "time", points: 10, spawnRate: 0.5 }, // Rare
+            { emoji: "☢️", name: "radiation", points: 10, spawnRate: 0.3 }, // Very Rare
+            { emoji: "🔋", name: "battery", points: 0, spawnRate: 0.3 }  // Uncommon
         ];
 
         let inventory = { "💀": 0, "💩": 0, "🔫": 0, "🐦‍🔥": 0, "☢️": 0 };
 
         const sounds = {
+            startup: new Audio("startup.mp3"),
             music1: new Audio("background-layer-0.mp3"),
             music2: new Audio("background-layer-1.mp3"),
             music3: new Audio("background-layer-2.mp3"),
             risada: new Audio("risada-do-mal.mp3"),
             ghost: new Audio("ghost.mp3"),
-            effects: new Audio("background-layer-.mp3"),
             shoot: new Audio("shoot.mp3"),
+            laser: new Audio("laser.mp3"),
             explosion: new Audio("explosion.mp3"),
             explosionAll: new Audio("explosion-all.mp3"),
             collect: new Audio("collect.mp3"),
             shield: new Audio("shield.mp3"),
+            life: new Audio("life.mp3"),
+            loseLife: new Audio("lose-life.mp3"),
             gameover: new Audio("gameover.mp3")
         };
 
@@ -325,7 +391,6 @@
 
         // 🚀 Play Background Music when the game starts
         function startMusic() {
-            sounds.music1.play();
             sounds.music2.play();
             sounds.music3.play();
         }
@@ -338,37 +403,110 @@
             }
         }
 
-        let invincible = false;
-        let invincibleTimer = 0;
+        function updateManaBar() {
+            let manaPercentage = (mana / maxMana) * 100;
+            document.getElementById('mana-bar').style.width = `${manaPercentage}%`;
 
-        let bullets = [];
-        let canShoot = false; // Starts as false, enabled when a coconut is collected
-        const bulletSpeed = 10;
-        const bulletSize = 8;
-        let shootTimer = 0;
+            // Se a mana acabou, o jogador perde uma vida
+            if (mana <= 0) {
+                loseLife();
+                mana = maxMana; // Recupera a mana ao perder uma vida
+            }
+        }
 
-        let normalAcceleration = 0.3; // Default acceleration
-        let slowAcceleration = 0.1;   // Reduced acceleration when diamond is active
-        let currentAcceleration = normalAcceleration; // Track current acceleration
+        function updateArmorBar() {
+            let armorPercentage = (armor / maxArmor) * 100;
+            document.getElementById('armor-bar').style.width = `${armorPercentage}%`;
+        }
 
-        let slowMovementTimer = 0; // Timer for slow effect
-        // List of collectible objects in the game
-        let activeCollectibles = [];
+        // Create a falling stalactite
+        function createStalactite() {
+            let baseWidth = 40 + Math.random() * 30; // Wider base
+            let height = 60 + Math.random() * 50; // Taller stalactite
+
+            let stalactite = {
+                x: Math.random() * (canvas.width - baseWidth) + baseWidth / 2, // Random horizontal position
+                y: ceilingLevel, // Starts at ceiling
+                width: baseWidth,
+                height: height,
+                speed: 2 + Math.random() * 2, // Falling speed
+                active: true // Track if it's still in the game
+            };
+            stalactites.push(stalactite);
+            console.log("🧊 Stalactite created!", stalactite);
+        }
+
+        // Draw stalactites
+        function drawStalactites() {
+            ctx.fillStyle = "#553322"; // Darker rock color
+            ctx.strokeStyle = "#8a0303"; // Red outline for visibility
+            ctx.lineWidth = 2;
+
+            stalactites.forEach(stalactite => {
+                ctx.beginPath();
+                ctx.moveTo(stalactite.x, stalactite.y); // Top middle
+                let peakOffset = stalactite.width * 0.2;
+
+                // Draw a jagged, uneven base (simulating rocky formation)
+                ctx.lineTo(stalactite.x - stalactite.width / 2, stalactite.y + peakOffset);
+                ctx.lineTo(stalactite.x - stalactite.width * 0.3, stalactite.y + stalactite.height * 0.5);
+                ctx.lineTo(stalactite.x - stalactite.width * 0.1, stalactite.y + stalactite.height * 0.8);
+                ctx.lineTo(stalactite.x, stalactite.y + stalactite.height);
+                ctx.lineTo(stalactite.x + stalactite.width * 0.1, stalactite.y + stalactite.height * 0.8);
+                ctx.lineTo(stalactite.x + stalactite.width * 0.3, stalactite.y + stalactite.height * 0.5);
+                ctx.lineTo(stalactite.x + stalactite.width / 2, stalactite.y + peakOffset);
+                ctx.closePath();
+
+                ctx.fill();
+                ctx.stroke(); // Outline for better visibility
+            });
+        }
+
+        // 🏗️ Update stalactites (falling effect)
+        function updateStalactites() {
+            for (let i = stalactites.length - 1; i >= 0; i--) {
+                let stalactite = stalactites[i];
+                stalactite.y += stalactite.speed; // Move downward
+
+                // Remove stalactites that go off the screen
+                if (stalactite.y > canvas.height) {
+                    stalactites.splice(i, 1);
+                    console.log("💨 Stalactite removed (out of screen)");
+                }
+
+                // Check collision with the ship
+                if (
+                    shipX < stalactite.x + stalactite.width / 2 &&
+                    shipX + shipWidth > stalactite.x - stalactite.width / 2 &&
+                    shipY < stalactite.y + stalactite.height &&
+                    shipY + shipHeight > stalactite.y
+                ) {
+                    console.log("💥 Stalactite hit the ship!");
+                    loseLife();
+                    stalactites.splice(i, 1);
+                }
+            }
+        }
 
         // Shoot function
-        function shootBullet() {
-            if (canShoot) {
+        function shoot() {
+            if (armor <= 0) return
+
+            if (inventory["🔫"] >= 3) {
+                activateLaserMode();
+            } else if (inventory["🔫"] > 0) {
                 bullets.push({
                     x: shipX + shipWidth,
                     y: shipY + shipHeight / 2,
-                    size: bulletSize,
+                    size: 8,
+                    speed: 10
                 });
                 playSound("shoot");
             }
         }
 
         // Update bullets
-        function updateBullets() {
+        function updateShooting() {
             for (let i = bullets.length - 1; i >= 0; i--) {
                 bullets[i].x += bulletSpeed;
 
@@ -391,7 +529,6 @@
                                 let emojiX = obstacle.x + col * obstacle.blockSize;
                                 let emojiY = obstacle.y + row * obstacle.blockSize;
 
-                                // Bullet hitbox
                                 if (
                                     bullets[i].x + bullets[i].size > emojiX &&
                                     bullets[i].x < emojiX + obstacle.blockSize &&
@@ -400,12 +537,38 @@
                                 ) {
                                     console.log(`🔥 Bullet destroyed ${emoji}`);
                                     obstacle.pattern[row][col] = ""; // Remove emoji
-                                    bullets.splice(i, 1); // Remove bullet
-                                    score += 1
+                                    bullets.splice(i, 1);
+                                    score += 1;
+                                    armor -= 1;
+                                    updateArmorBar();
                                     return;
                                 }
                             }
                         }
+                    }
+                }
+            }
+
+            if (laserBeam) {
+                laserBeam.x += laserBeam.speed;
+                if (laserBeam.x > canvas.width) laserBeam = null;
+
+                for (let i = obstacles.length - 1; i >= 0; i--) {
+                    let obstacle = obstacles[i];
+                    if (
+                        laserBeam &&
+                        laserBeam.x + laserBeam.width > obstacle.x &&
+                        laserBeam.x < obstacle.x + obstacle.width &&
+                        laserBeam.y > obstacle.y &&
+                        laserBeam.y < obstacle.y + obstacle.height
+                    ) {
+                        createExplosion(obstacle.x + obstacle.width / 2, obstacle.y + obstacle.height / 2);
+                        obstacles.splice(i, 1);
+                        armor -= 1;
+                        if (armor < 0) armor = 0;
+                        updateArmorBar();
+                        laserBeam = null;
+                        break;
                     }
                 }
             }
@@ -422,46 +585,87 @@
         }
 
         function activateLaserMode() {
-            console.log("⚡ LASER MODE ACTIVATED!");
+            if (laserCooldown || armor <= 0) return;
+
             laserActive = true;
-            playSound("shoot");
+            laserCooldown = true;
+            playSound("laser");
+
+            // Criar um novo feixe temporário
+            laserBeam = {
+                x: shipX + shipWidth,
+                y: shipY + shipHeight / 2,
+                width: 10,
+                speed: 20
+            };
 
             setTimeout(() => {
                 laserActive = false;
-                console.log("⚡ Laser Mode Over!");
-            }, laserDuration);
+                laserBeam = null;
+                setTimeout(() => {
+                    laserCooldown = false;
+                }, 100); // Pequena pausa antes de permitir outro laser
+            }, 500); // O feixe dura apenas 100ms
         }
 
+
         function drawLaser() {
-            if (!laserActive) return;
+            if (!laserBeam) return;
 
-            ctx.strokeStyle = "cyan"; // Laser color
-            ctx.lineWidth = 4; // Thick laser beam
-            ctx.globalAlpha = 0.7;
+            let beamLength = 900; // Make it longer for a sci-fi effect
+            let beamThickness = 8; // Core thickness
+            let glowThickness = 18; // Glow thickness
 
+            // **Core Laser Beam**
+            ctx.globalAlpha = 0.9;
+            ctx.strokeStyle = "rgba(0, 255, 255, 1)"; // Intense cyan core
+            ctx.lineWidth = beamThickness;
             ctx.beginPath();
-            ctx.moveTo(shipX + shipWidth, shipY + shipHeight / 2);
-            ctx.lineTo(canvas.width, shipY + shipHeight / 2); // Laser extends across the screen
+            ctx.moveTo(laserBeam.x, laserBeam.y);
+            ctx.lineTo(laserBeam.x + beamLength, laserBeam.y);
             ctx.stroke();
-            ctx.globalAlpha = 1;
 
-            destroyObstaclesWithLaser();
+            // **Outer Glow**
+            ctx.globalAlpha = 0.4;
+            ctx.strokeStyle = "rgba(0, 255, 255, 0.6)";
+            ctx.lineWidth = glowThickness;
+            ctx.beginPath();
+            ctx.moveTo(laserBeam.x, laserBeam.y);
+            ctx.lineTo(laserBeam.x + beamLength, laserBeam.y);
+            ctx.stroke();
+
+            // **Extra Flickering Effect (subtle randomness)**
+            if (Math.random() > 0.5) {
+                ctx.globalAlpha = 0.2;
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+                ctx.lineWidth = glowThickness + 4;
+                ctx.beginPath();
+                ctx.moveTo(laserBeam.x, laserBeam.y);
+                ctx.lineTo(laserBeam.x + beamLength, laserBeam.y);
+                ctx.stroke();
+            }
+
+            // Reset global alpha
+            ctx.globalAlpha = 1;
         }
 
         function destroyObstaclesWithLaser() {
-            if (!laserActive) return;
-
+            if (!laserBeam) return;
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 let obstacle = obstacles[i];
-
-                // Check if obstacle is aligned with the laser
                 if (
-                    obstacle.y < shipY + shipHeight / 2 + 20 &&
-                    obstacle.y + obstacle.height > shipY + shipHeight / 2 - 20
+                    laserBeam.x + laserBeam.width > obstacle.x &&
+                    laserBeam.x < obstacle.x + obstacle.width &&
+                    laserBeam.y > obstacle.y &&
+                    laserBeam.y < obstacle.y + obstacle.height
                 ) {
-                    console.log("💥 Laser destroyed an obstacle!");
                     createExplosion(obstacle.x + obstacle.width / 2, obstacle.y + obstacle.height / 2);
                     obstacles.splice(i, 1);
+                    armor -= 3;
+                    if (armor < 0) armor = 0;
+                    updateArmorBar();
+                    laserBeam = null; // Destroy beam after hitting an obstacle
+                    break;
                 }
             }
         }
@@ -709,7 +913,7 @@
             }
 
             // **EXTRA ARMOR (When Shooting is Enabled)**
-            if (canShoot) {
+            if (armor > 0) {
                 ctx.fillStyle = "#666"; // Darker metallic armor
                 ctx.strokeStyle = "#BBB";
                 ctx.lineWidth = 2;
@@ -731,6 +935,30 @@
                 ctx.fillRect(shipX + shipWidth * 0.35, shipY + shipHeight * 0.85, 8, 4);
                 ctx.fillRect(shipX + shipWidth * 0.6, shipY + shipHeight * 0.1, 8, 4);
                 ctx.fillRect(shipX + shipWidth * 0.6, shipY + shipHeight * 0.85, 8, 4);
+            }
+            else if (inventory['🔫'] > 3 && armor > 0) {
+                ctx.strokeStyle = "cyan";
+                ctx.lineWidth = 4;
+
+                // **Energy Lines on Wings**
+                ctx.beginPath();
+                ctx.moveTo(shipX + shipWidth * 0.2, shipY + shipHeight * 0.1);
+                ctx.lineTo(shipX + shipWidth * 0.8, shipY + shipHeight * 0.1);
+                ctx.moveTo(shipX + shipWidth * 0.2, shipY + shipHeight * 0.9);
+                ctx.lineTo(shipX + shipWidth * 0.8, shipY + shipHeight * 0.9);
+                ctx.stroke();
+
+                // **Outer Glow**
+                let laserGlow = ctx.createRadialGradient(
+                    shipX + shipWidth / 2, shipY + shipHeight / 2, 20,
+                    shipX + shipWidth / 2, shipY + shipHeight / 2, 60
+                );
+                laserGlow.addColorStop(0, "rgba(0, 255, 255, 0.9)");
+                laserGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
+                ctx.fillStyle = laserGlow;
+                ctx.beginPath();
+                ctx.arc(shipX + shipWidth / 2, shipY + shipHeight / 2, 50, 0, Math.PI * 2);
+                ctx.fill();
             }
         }
 
@@ -802,11 +1030,16 @@
         }
 
         function createCollectible() {
-            if (Math.random() > 0.8) return; // Only 20% chance to spawn a collectible
+            if (Math.random() > 0.8) return; // General 20% chance to spawn any collectible
 
-            const item = collectibles[Math.floor(Math.random() * collectibles.length)];
-            const size = 20;
-            const yPos = Math.random() * (groundLevel - ceilingLevel - size) + ceilingLevel;
+            // Filter only items that **pass the probability check**
+            let availableItems = collectibles.filter(item => Math.random() < item.spawnRate);
+
+            if (availableItems.length === 0) return; // If no items pass, don't spawn anything
+
+            let item = availableItems[Math.floor(Math.random() * availableItems.length)];
+            let size = 25;
+            let yPos = Math.random() * (groundLevel - ceilingLevel - size) + ceilingLevel;
 
             activeCollectibles.push({
                 emoji: item.emoji,
@@ -818,7 +1051,6 @@
                 collected: false
             });
         }
-
 
         // Draw ground and ceiling
         function drawGroundAndCeiling() {
@@ -899,14 +1131,6 @@
                 bottom: shipY + shipHeight - 5
             };
 
-            // ✅ **Check ground and ceiling collision**
-            if (shipHitbox.bottom > groundLevel || shipHitbox.top < ceilingLevel) {
-                console.warn("🚨 Ship hit ground or ceiling!");
-                loseLife();
-                shipFlicker = true;
-                return;
-            }
-
             // ✅ **Check obstacle collisions**
             for (const obstacle of obstacles) {
                 if (obstacle.type === "emoji-block") {
@@ -932,8 +1156,11 @@
                                 shipHitbox.top < emojiHitbox.bottom
                             ) {
                                 console.log("💥 Collision detected with an emoji!");
-                                playSound("risada");
-                                loseLife();
+                                mana -= .3;
+                                if (mana > .3) {
+                                    playSound('loseLife')
+                                }
+                                updateManaBar();
                                 shipFlicker = true;
                                 return;
                             }
@@ -971,9 +1198,11 @@
                     playSound("collect");
                     console.log(`✅ Collected: ${item.name}`);
                     score += item.points;
+
                     inventory[item.emoji]++;
-                    updateInventoryDisplay();
                     activeCollectibles.splice(i, 1); // Remove collected item
+                    updateInventoryDisplay();
+                    checkLifeGain(); // ✅ Check if an extra life should be given
 
                     // **Apply effects**
                     if (item.emoji === "💀") {
@@ -983,7 +1212,7 @@
                         playSound("shield");
 
                         // ✨ Boost the ship glow when collecting a drop
-                        shipGlow.radius = 40; // Temporarily increase glow
+                        shipGlow.radius = 35; // Temporarily increase glow
                         setTimeout(() => { shipGlow.radius = 20; }, 500); // Reset after 500ms
                     }
 
@@ -993,20 +1222,33 @@
                     }
 
                     if (item.emoji === "🔫") {
-                        canShoot = true;
-                        shootTimer = 1500;
-                        console.log("🚀 Shooting enabled!");
+                        inventory["🔫"]++;
+                        armor += 10; // Increase armor
+                        updateArmorBar();
 
-                        if (inventory["🔫"] >= 3) {
-                            activateLaserMode();
-                            inventory["🔫"] = 0
+                        // Apply the first armor skin when collecting the first gun
+                        if (inventory["🔫"] === 1) {
+                            shipHasArmorSkin = true;
                         }
+
+                        // Apply the laser skin when collecting three guns
+                        if (inventory["🔫"] >= 3) {
+                            shipHasLaserSkin = true;
+                        }
+
+                        updateInventoryDisplay();
                     }
 
                     if (item.emoji === "💩") {
                         console.log("💩 Diamond collected! Movement sensitivity reduced!");
                         currentAcceleration = slowAcceleration;
                         slowMovementTimer = 1500;
+                    }
+
+                    if (item.emoji === "🔋") {
+                        mana = Math.min(mana + 30, maxMana); // Recupera 30 de mana sem ultrapassar o máximo
+                        updateManaBar();
+                        console.log("⚡ Mana recuperada!");
                     }
 
                     if (item.emoji === "☢️") {
@@ -1071,11 +1313,11 @@
             // **Stop ship movement, obstacles, but keep explosion running**
             shipVelocity = 0;
             shipXVelocity = 0;
-            obstacleSpeed = 0;
 
             setTimeout(() => {
                 isExploding = false; // Stop explosion effect after delay
                 if (lives > 0) {
+                    playSound("risada");
                     restartAfterHit();
                 } else {
                     gameOver = true;
@@ -1084,8 +1326,13 @@
                     gameOverScreen.style.fontSize = 40;
                     gameOverScoreDisplay.textContent = `${score}`;
                 }
-                obstacleSpeed = .4; // Reset speed
+
             }, 2000); // 2-second delay before restarting
+
+            mana = maxMana; // Reseta a mana ao perder uma vida
+            armor = 0; // Reset armor
+            inventory["🔫"] = 0;
+            updateManaBar();
         }
 
         function restartAfterHit() {
@@ -1102,11 +1349,13 @@
             shipXVelocity = 0;
 
             // Restore obstacle movement
-            obstacleSpeed = .4;
+            // obstacleSpeed = .4;
 
             // Temporary invincibility after hit
             invincible = true;
             invincibleTimer = 600;
+
+            inventory['x'] = 0
 
             canShoot = false;
             shootTimer = 0;
@@ -1171,7 +1420,7 @@
 
             // **Detect a tap (not a swipe) → SHOOT**
             if (!isMoving && timeDiff < tapThreshold && Math.abs(deltaX) < minMovement && Math.abs(deltaY) < minMovement) {
-                shootBullet();
+                shoot();
             }
 
             // Reset touch tracking
@@ -1189,7 +1438,7 @@
         });
         window.addEventListener("keydown", (e) => {
             if (e.key === " " || e.code === "Space") {
-                shootBullet();
+                shoot();
             }
         });
 
@@ -1247,6 +1496,13 @@
             // Add ship trail particles
             if (gameTime % 2 === 0) {
                 createShipTrail();
+            }
+
+            updateStalactites();
+
+            if (gameTime >= nextStalactiteTime) {
+                createStalactite();
+                nextStalactiteTime = gameTime + Math.floor(Math.random() * 1000) + 800; // Next spawn in 800-1800 frames
             }
 
              // 🚀 **Check High Speed for Ghost Sound Effect**
@@ -1320,6 +1576,7 @@
 
             drawBackground();   // Draw background first
             drawObstacles();    // Then obstacles
+            drawStalactites();
             drawParticles();    // Then ship trail
             drawCollectibles();
 
@@ -1339,12 +1596,13 @@
                 ☢️ ${inventory["☢️"]}`
         }
 
+
         // Game loop
         function gameLoop() {
             if (!gameOver) {
                 if (!isExploding) { // 🚨 Only stop updates, not rendering
                     updateGame();
-                    updateBullets();
+                    updateShooting();
                 }
                 updateExplosion(); // ✅ Always update explosion effect
             }
@@ -1357,9 +1615,9 @@
             requestAnimationFrame(gameLoop);
         }
 
-
         // Start the game
         startButton.addEventListener('click', () => {
+            if (isMobile) requestFullScreen();
             startScreen.style.display = 'none';
             gameOverScreen.style.display = 'none'; // Hide Game Over screen if visible
             gameStarted = true;
@@ -1420,6 +1678,17 @@
             requestAnimationFrame(gameLoop);
         });
 
+        function checkLifeGain() {
+            let inventorySum = Object.values(inventory).reduce((sum, value) => sum + value, 0);
+
+            if (inventorySum > 0 && inventorySum % 10 === 0) {
+                lives++;
+                playSound('life')
+                console.log(`🎉 Extra life awarded! Lives: ${lives}`);
+                document.getElementById('lives').innerHTML = `❤️ Vidas ${lives}`;
+            }
+        }
+
         // Handle game over
         function handleGameOver() {
             if (gameOver) {
@@ -1429,6 +1698,14 @@
             }
         }
 
+        window.addEventListener("load", () => {
+            document.body.addEventListener("click", function playStartupSound() {
+                playSound('music1')
+                playSound('startup')
+                document.body.removeEventListener("click", playStartupSound); // Remove listener after playing
+            });
+        });
+
         // Set up resize handler
         window.addEventListener('resize', () => {
             function resizeCanvas() {
@@ -1436,6 +1713,15 @@
                 canvas.height = window.innerHeight;
                 groundLevel = canvas.height * 0.8;
                 ceilingLevel = canvas.height * 0.2;
+
+                if (/iPhone|iPad|Android|Mobile/i.test(navigator.userAgent)) {
+                    groundLevel = canvas.height * 0.95; // 📱 5% ceiling/floor
+                    ceilingLevel = canvas.height * 0.05;
+                } else {
+                    groundLevel = canvas.height * 0.9; // 🖥️ 10% ceiling/floor
+                    ceilingLevel = canvas.height * 0.1;
+                }
+
                 shipY = canvas.height / 2;
                 gravity = /iPhone|iPad|Android|Mobile/i.test(navigator.userAgent) ? mobileGravity : normalGravity;
             }
@@ -1447,6 +1733,19 @@
             ceilingLevel = canvas.height * 0.2;
             shipY = canvas.height / 2;
         });
+
+        // 📱 Function to enable Fullscreen on mobile
+        function requestFullScreen() {
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen();
+            } else if (document.documentElement.mozRequestFullScreen) {
+                document.documentElement.mozRequestFullScreen();
+            } else if (document.documentElement.webkitRequestFullscreen) {
+                document.documentElement.webkitRequestFullscreen();
+            } else if (document.documentElement.msRequestFullscreen) {
+                document.documentElement.msRequestFullscreen();
+            }
+        }
 
         // Start animation
         gameLoop();
