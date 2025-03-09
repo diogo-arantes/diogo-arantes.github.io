@@ -126,7 +126,7 @@ function createCodeBoxes(snippets) {
             runCodeButton.innerText = 'Executar Código';
 
             runCodeButton.onclick = () => {
-                const gameUrl = './lib/viagem-amaldicoada/game.html';
+                const gameUrl = 'https://hotflame.com.br/lib/maldicao-do-emoji';
 
                 // Open the game page in a new tab
                 window.open(gameUrl, '_blank');
