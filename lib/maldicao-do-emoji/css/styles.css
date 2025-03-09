@@ -1,0 +1,145 @@
+body {
+    margin: 0;
+    overflow: hidden;
+    background-color: #000;
+    font-family: 'Courier New', monospace;
+    color: #8a0303;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
+}
+
+canvas {
+    display: block;
+    background: linear-gradient(to bottom, #0a0a0a, #1a0707);
+}
+
+#game-container {
+    position: absolute;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#bars-container {
+    position: absolute;
+    top: 20px;
+    left: 100px;
+    display: flex;
+    gap: 10px;
+}
+
+#mana-bar-container, #armor-bar-container {
+    width: 120px;
+    height: 15px;
+    background: rgb(34, 0, 0);
+    border-radius: 5px;
+    overflow: hidden;
+    border: 2px solid rgb(83, 0, 0);
+}
+
+#mana-bar {
+    width: 100%;
+    height: 100%;
+    background: #9f112f;
+    transition: width 0.2s;
+}
+
+#armor-bar {
+    width: 0%;
+    height: 100%;
+    background: rgb(75, 9, 255);
+    transition: width 0.2s;
+}
+
+#start-screen, #game-over-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 20px;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 10;
+}
+
+h1 {
+    color: #8a0303;
+    font-size: 1.5em;
+    margin-bottom: 20px;
+    text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000; }
+    50% { text-shadow: 0 0 15px #ff0000, 0 0 30px #ff0000; }
+    100% { text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000; }
+}
+
+button {
+    padding: 15px 30px;
+    font-size: 1em;
+    border: 2px solid #8a0303;
+    background-color: #1a0707;
+    color: #8a0303;
+    cursor: pointer;
+    margin-top: 20px;
+    font-family: 'Courier New', monospace;
+    transition: all 0.3s;
+}
+
+button:hover {
+    background-color: #8a0303;
+    color: #000;
+    transform: scale(1.05);
+}
+
+#level {
+    position: absolute;
+    top: 0;
+    right: 90px;
+    font-size: 7em;
+    z-index: 0;
+    text-shadow: 0 0 20px #ff0000;
+    opacity: .4;
+}
+
+#title {
+    position: absolute;
+    top: 60px;
+    right: 20px;
+    font-size: 1em;
+    z-index: 5;
+}
+
+#score {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 1em;
+    z-index: 5;
+}
+
+#game-over-score {
+    font-size: 2em;
+    margin: 20px 0;
+}
+
+@media (max-width: 768px) {
+    #mana-bar-container, #armor-bar-container {
+        width: 60px;
+        height: 10px;
+    }
+}

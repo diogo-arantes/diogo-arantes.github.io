@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0">
+    <title>A maldição do Emoji</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        <div id="score">Score: 0</div>
+        <div id="inventory" style="
+            position: absolute;
+            top: 30px;
+            left: 10px;
+            font-size: .8em;
+            color: #a51b1b;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;">
+        </div>
+        <div id="lives" style="
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: .8em;
+            color: #a51b1b;
+            z-index: 5;">
+        </div>
+        <div id="bars-container">
+            <div id="mana-bar-container">
+                <div id="mana-bar"></div>
+            </div>
+            <div id="armor-bar-container">
+                <div id="armor-bar"></div>
+            </div>
+        </div>
+        <div id="level"></div>
+        <div id="title"></div>
+        </div>
+
+        <div id="start-screen">
+            <h1>VIAGEM AMALDIÇOADA</h1>
+            <button id="start-button">PREPARE-SE PARA PERDER</button>
+        </div>
+
+        <div id="game-over-screen" style="display: none;">
+            <h1>GAME OVER</h1>
+            <div id="game-over-score"></div>
+            <button id="restart-button">VAI TENTAR NEH</button>
+        </div>
+    </div>
+
+    <script src="js/player.js"></script>
+    <script src="js/util.js"></script>
+    <script src="js/ship.js"></script>
+    <script src="js/effects.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/obstacles.js"></script>
+    <script src="js/boss.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/sounds.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/collectibles.js"></script>
+    <script src="js/main.js"></script>
+
+    <script>
+        // Start animation
+        gameLoop();
+    </script>
+</body>
+</html>
