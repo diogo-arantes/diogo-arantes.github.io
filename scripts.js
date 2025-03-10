@@ -135,6 +135,36 @@ function createCodeBoxes(snippets) {
             terminal.appendChild(runCodeButton);
         }
 
+        if (snippet.title.toLowerCase().startsWith('memoria')) {
+            const runCodeButton = document.createElement('button');
+            runCodeButton.className = 'run-btn';
+            runCodeButton.innerText = 'Executar Código';
+
+            runCodeButton.onclick = () => {
+                const gameUrl = 'https://hotflame.com.br/lib/memoria';
+
+                // Open the game page in a new tab
+                window.open(gameUrl, '_blank');
+            };
+
+            terminal.appendChild(runCodeButton);
+        }
+
+        if (snippet.title.toLowerCase().startsWith('tetris')) {
+            const runCodeButton = document.createElement('button');
+            runCodeButton.className = 'run-btn';
+            runCodeButton.innerText = 'Executar Código';
+
+            runCodeButton.onclick = () => {
+                const gameUrl = 'https://hotflame.com.br/lib/tetris';
+
+                // Open the game page in a new tab
+                window.open(gameUrl, '_blank');
+            };
+
+            terminal.appendChild(runCodeButton);
+        }
+
         // Add click event to open/close snippet
         snippetTitle.addEventListener('click', () => {
             // Close any currently open terminal before opening the new one
