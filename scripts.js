@@ -120,7 +120,7 @@ function createCodeBoxes(snippets) {
         terminal.appendChild(downloadButton);
 
         // **Enable the "Run Code" button only if the file has .html extension**
-        if (snippet.title.toLowerCase().startsWith('nave')) {
+        if (snippet.title.toLowerCase().startsWith('maldicao')) {
             const runCodeButton = document.createElement('button');
             runCodeButton.className = 'run-btn';
             runCodeButton.innerText = 'Executar Código';
