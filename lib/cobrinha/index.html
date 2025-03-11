@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+	<meta charset="UTF-8">
+	<title>Aventuras da Cobrinha</title>
+	<meta name="viewport" content="width=device-width, initial-scale=.9">
+	<style>
+		body {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+			background: linear-gradient(135deg, #1a2a3a, #0d1b2a);
+			margin: 0;
+			padding: 20px;
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			color: white;
+			height: 95vh;
+			overflow: hidden;
+		}
+
+		.game-container {
+			position: relative;
+			width: 100%;
+			max-width: 900px;
+			height: auto;
+			aspect-ratio: 1 / 1;
+		}
+
+		canvas {
+			width: 100%;
+			height: 100%;
+			border: 5px solid #2a4365;
+			border-radius: 15px;
+			background: #000;
+		}
+
+		.ui-container {
+			display: flex;
+			justify-content: space-between;
+			position: relative;
+			width: 100%;
+			max-width: 900px;
+			height: auto;
+			margin-bottom: 20px;
+		}
+
+		.stats {
+			width: 15vw;
+			display: flex;
+			justify-content: space-between;
+			font-size: 20px;
+			color: #a0e4ff;
+			text-shadow: 0 0 10px rgba(160, 228, 255, 0.6);
+		}
+
+		#lives {
+			font-size: 20px;
+			color: #ff6b6b;
+			text-shadow: 0 0 10px rgba(255, 107, 107, 0.6);
+		}
+
+		.level-indicator {
+			font-size: 20px;
+			color: #ffd166;
+			text-shadow: 0 0 15px rgba(255, 209, 102, 0.7);
+		}
+
+		.game-over {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			font-size: 60px;
+			font-weight: bold;
+			color: #ff4757;
+			text-shadow: 0 0 20px rgba(255, 71, 87, 0.8);
+			display: none;
+			text-align: center;
+		}
+
+		.game-over button {
+			background: #2a4365;
+			color: white;
+			border: none;
+			padding: 15px 30px;
+			margin-top: 20px;
+			font-size: 20px;
+			border-radius: 8px;
+			cursor: pointer;
+			transition: all 0.3s;
+		}
+
+		.game-over button:hover {
+			background: #3a5375;
+			transform: scale(1.05);
+			box-shadow: 0 0 15px rgba(41, 121, 255, 0.6);
+		}
+
+		svg {
+			display: none;
+		}
+
+		.power-up-indicator {
+			position: absolute;
+			top: 10px;
+			right: 10px;
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			font-size: 20px;
+			color: #a0e4ff;
+			opacity: 0;
+			transition: opacity 0.3s;
+		}
+
+		.power-up-indicator.active {
+			opacity: 1;
+		}
+
+		.power-up-icon {
+			width: 30px;
+			height: 30px;
+			border-radius: 50%;
+		}
+	</style>
+</head>
+<body>
+	<div class="ui-container">
+		<div class="stats">
+			<div id="lives">🩸 3</div>
+			<div id="score">⭐ 0</div>
+			<div class="level-indicator" id="level">🏆 1</div>
+		</div>
+	</div>
+
+	<div class="game-container">
+		<canvas id="gameCanvas" width="900" height="900"></canvas>
+		<div class="game-over" id="startGame">
+			<div>Aventuras da Cobrinha</div>
+			<button id="restartButton">Jogar</button>
+		</div>
+		<div class="game-over" id="gameOver">
+			<div>Perdeu!!</div>
+			<div id="finalScore" style="font-size: 36px; margin-top: 20px;">Score 0</div>
+			<div id="highScore" style="font-size: 36px; margin-top: 20px;">Score máximo 0</div>
+			<button id="restartButton">Jogar</button>
+		</div>
+		<div class="power-up-indicator" id="powerUpIndicator">
+			<div class="power-up-icon" id="powerUpIcon"></div>
+			<div id="powerUpText">Velocidade!</div>
+		</div>
+	</div>
+
+	<!-- SVG assets -->
+	<svg id="snakeHead" viewBox="0 0 20 20">
+		<circle cx="10" cy="10" r="9" fill="#4ade80"/>
+		<circle cx="6" cy="7" r="2" fill="#000"/>
+		<circle cx="14" cy="7" r="2" fill="#000"/>
+		<path d="M7 12 C10 15, 13 12, 13 12" stroke="#000" stroke-width="1.5" fill="none"/>
+	</svg>
+
+	<svg id="snakeHeadPowerUp" viewBox="0 0 20 20">
+		<circle cx="10" cy="10" r="9" fill="#8b5cf6"/>
+		<circle cx="6" cy="7" r="2" fill="#000"/>
+		<circle cx="14" cy="7" r="2" fill="#000"/>
+		<path d="M7 11 C10 15, 13 11, 13 11" stroke="#000" stroke-width="1.5" fill="none"/>
+		<circle cx="10" cy="10" r="11" fill="none" stroke="#d8b4fe" stroke-width="1" opacity="0.7">
+			<animate attributeName="r" values="9;12;9" dur="1s" repeatCount="indefinite"/>
+			<animate attributeName="opacity" values="0.7;0.3;0.7" dur="1s" repeatCount="indefinite"/>
+		</circle>
+	</svg>
+
+	<script>
+		const config = {
+			gridSize: 900,
+			cellSize: 30,
+			initialSpeed: 110,
+			speedIncrement: 5,
+			maxSpeed: 50,
+			foodCount: 1,
+			powerUpChance: 0.1,
+			powerUpDuration: 5000,
+			difficultyThreshold: 5
+		};
+
+		// Game elements
+		const canvas = document.getElementById('gameCanvas');
+		const ctx = canvas.getContext('2d');
+		const gameOver = document.getElementById('gameOver');
+		const finalScore = document.getElementById('finalScore');
+		const scoreElement = document.getElementById('score');
+		const highScoreElement = document.getElementById('highScore');
+		const levelElement = document.getElementById('level');
+		const restartButton = document.getElementById('restartButton');
+		const powerUpIndicator = document.getElementById('powerUpIndicator');
+		const powerUpIcon = document.getElementById('powerUpIcon');
+		const powerUpText = document.getElementById('powerUpText');
+
+		// Game state
+		let lives = 3;
+		let isRecovering = false;
+		let snake = [];
+		let direction = { x: config.cellSize, y: 0 };
+		let nextDirection = { x: config.cellSize, y: 0 };
+		let food = [];
+		let powerUps = [];
+		let activePowerUp = null;
+		let powerUpTimer = null;
+		let score = 0;
+		let highScore = localStorage.getItem('snakeHighScore') || 0;
+		let level = 1;
+		let gameSpeed = config.initialSpeed;
+		let lastUpdate = 0;
+		let gameActive = false;
+		let gamePaused = false;
+		let currentBackgroundAudio = null;
+        let currentEffectAudio = null;
+
+		// Images
+		const images = {};
+
+		// Power-up types
+		const powerUpTypes = [
+		{
+			name: 'speed',
+			color: '#8b5cf6',
+			effect: () => {
+				const originalSpeed = gameSpeed;
+				gameSpeed = Math.max(config.maxSpeed, gameSpeed - 40);
+				return () => { gameSpeed = originalSpeed; };
+			},
+			text: 'Veloz!'
+		},
+		{
+			name: 'points',
+			color: '#f59e0b',
+			effect: () => {
+				// No state change needed, just double points on next few foods
+				return () => {}; // No cleanup needed
+			},
+			text: 'Pontos em dobro!'
+		},
+		{
+			name: 'ghost',
+			color: '#94a3b8',
+			effect: () => {
+				// Original state is already preserved in game logic
+				return () => {}; // No cleanup needed
+			},
+			text: 'Modo fantasma!'
+		}
+		];
+
+		// Initialize game
+		function initGame() {
+			snake = [{ x: 300, y: 300 }];
+			direction = { x: config.cellSize, y: 0 };
+			nextDirection = { x: config.cellSize, y: 0 };
+			food = [];
+			powerUps = [];
+			score = 0;
+			level = 1;
+			gameSpeed = config.initialSpeed;
+			gameActive = true;
+			gamePaused = false;
+			lives = 3;  // Reset lives
+			isRecovering = false;
+
+			if (powerUpTimer) clearTimeout(powerUpTimer);
+			activePowerUp = null;
+			powerUpIndicator.classList.remove('active');
+
+			for (let i = 0; i < config.foodCount; i++) {
+				food.push(generateFood());
+			}
+
+			updateScore();
+			updateLevel();
+			updateLives();  // Update lives display
+
+			gameOver.style.display = 'none';
+			startGame.style.display = 'none';
+
+			playSound('music', { loop: true, isMusic: true });
+
+			requestAnimationFrame(gameLoop);
+		}
+
+		// Generate random color
+		function randomColor() {
+			const hue = Math.floor(Math.random() * 360);
+			return `hsl(${hue}, 100%, 65%)`;
+		}
+
+		// Generate random position (avoid snake)
+		function randomPosition() {
+			const x = Math.floor(Math.random() * (config.gridSize / config.cellSize)) * config.cellSize;
+			const y = Math.floor(Math.random() * (config.gridSize / config.cellSize)) * config.cellSize;
+
+			// Check if position overlaps with snake
+			if (snake.some(segment => segment.x === x && segment.y === y)) {
+				return randomPosition(); // Try again
+			}
+
+			return { x, y };
+		}
+
+		// Generate food
+		function generateFood() {
+			const pos = randomPosition();
+			return {
+				...pos,
+				color: randomColor(),
+				pulseScale: 1,
+				pulseDirection: -0.01,
+				sparkles: Array(3).fill().map(() => ({
+					x: Math.random() * config.cellSize,
+					y: Math.random() * config.cellSize,
+					size: 1 + Math.random() * 2,
+					speed: 0.1 + Math.random() * 0.2
+				}))
+			};
+		}
+
+		// Generate power-up
+		function generatePowerUp() {
+			const pos = randomPosition();
+			const type = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
+
+			return {
+				...pos,
+				type: type,
+				color: type.color,
+				pulseScale: 1,
+				pulseDirection: -0.02,
+				rotation: 0
+			};
+		}
+
+		// Activate power-up
+		function activatePowerUp(powerUp) {
+			// Clear any existing power-up
+			if (activePowerUp && activePowerUp.reset) {
+				activePowerUp.reset();
+			}
+
+			// Apply new power-up effect
+			const reset = powerUp.type.effect();
+
+			// Set active power-up
+			activePowerUp = {
+				type: powerUp.type,
+				reset: reset
+			};
+
+			// Update UI
+			powerUpIcon.style.backgroundColor = powerUp.color;
+			powerUpText.textContent = powerUp.type.text;
+			powerUpIndicator.classList.add('active');
+
+			// Set timer to clear power-up
+			if (powerUpTimer) clearTimeout(powerUpTimer);
+			powerUpTimer = setTimeout(() => {
+				if (activePowerUp && activePowerUp.reset) {
+					activePowerUp.reset();
+				}
+				activePowerUp = null;
+				powerUpIndicator.classList.remove('active');
+			}, config.powerUpDuration);
+		}
+
+		// Update score
+		function updateScore() {
+			scoreElement.textContent = `⭐ ${score}`;
+		}
+
+		// Update level
+		function updateLevel() {
+			levelElement.textContent = `🏆 ${level}`;
+		}
+
+		// Check collision
+		function checkCollision(pos) {
+			if (isRecovering) return false;
+
+			if (activePowerUp?.type.name !== 'ghost') {
+				if (pos.x < 0 || pos.x >= config.gridSize || pos.y < 0 || pos.y >= config.gridSize) {
+					playSound('collision')
+					handleLifeLoss();
+					return false;
+				}
+			}
+
+			for (let i = 1; i < snake.length; i++) {
+				if (snake[i].x === pos.x && snake[i].y === pos.y) {
+					playSound('collision')
+					handleLifeLoss();
+					return false;
+				}
+			}
+
+			return false;
+		}
+
+		function handleLifeLoss() {
+			lives--;
+			updateLives();
+
+			if (lives <= 0) {
+				endGame();
+			} else {
+				isRecovering = true;
+				setTimeout(() => {
+					resetSnake();
+					isRecovering = false;
+				}, 500); // 500ms recovery pause
+			}
+		}
+
+		function resetSnake() {
+			snake = [{
+				x: Math.floor(config.gridSize / 2),
+				y: Math.floor(config.gridSize / 2)
+			}];
+			direction = { x: config.cellSize, y: 0 };
+			nextDirection = { x: config.cellSize, y: 0 };
+		}
+
+		function updateLives() {
+			document.getElementById('lives').textContent = `🏆 ${lives}`;
+		}
+
+		// Game loop
+		function gameLoop(timestamp) {
+			if (!gameActive || gamePaused) {
+				if (gameActive) requestAnimationFrame(gameLoop);
+				return;
+			}
+
+			// Calculate delta time
+			const deltaTime = timestamp - lastUpdate;
+
+			// Update game at appropriate speed
+			if (deltaTime >= gameSpeed) {
+				update();
+				lastUpdate = timestamp;
+			}
+
+			// Always render
+			render();
+
+			// Continue loop
+			requestAnimationFrame(gameLoop);
+		}
+
+		// Update game state
+		function update() {
+			// Update direction
+			direction = nextDirection;
+
+			// Calculate new head position
+			let newHead = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
+
+			// Handle wrapping in ghost mode
+			if (activePowerUp?.type.name === 'ghost') {
+				if (newHead.x < 0) newHead.x = config.gridSize - config.cellSize;
+				if (newHead.x >= config.gridSize) newHead.x = 0;
+				if (newHead.y < 0) newHead.y = config.gridSize - config.cellSize;
+				if (newHead.y >= config.gridSize) newHead.y = 0;
+			}
+
+			// Check collision
+			if (checkCollision(newHead)) {
+				endGame();
+				return;
+			}
+
+			// Add new head
+			snake.unshift(newHead);
+
+			// Check for food collision
+			let ate = false;
+			for (let i = 0; i < food.length; i++) {
+				if (newHead.x === food[i].x && newHead.y === food[i].y) {
+					// Remove eaten food
+					food.splice(i, 1);
+
+					// Add score
+					const pointsMultiplier = activePowerUp?.type.name === 'points' ? 2 : 1;
+					score += 10 * pointsMultiplier;
+
+					// Check for level up
+					if (score >= level * config.difficultyThreshold * 10) {
+						level++;
+						gameSpeed = Math.max(config.maxSpeed, gameSpeed - config.speedIncrement);
+						updateLevel();
+					}
+
+					// Add new food
+					food.push(generateFood());
+
+					// Possibly add power-up
+					if (Math.random() < config.powerUpChance) {
+						powerUps.push(generatePowerUp());
+					}
+
+					// Update score
+					updateScore();
+
+					playSound('eat')
+
+					// Keep tail
+					ate = true;
+					break;
+				}
+			}
+
+			// Check for power-up collision
+			for (let i = 0; i < powerUps.length; i++) {
+				if (newHead.x === powerUps[i].x && newHead.y === powerUps[i].y) {
+					// Activate power-up
+					activatePowerUp(powerUps[i]);
+
+					// Remove collected power-up
+					powerUps.splice(i, 1);
+
+					playSound('power-up')
+
+					break;
+				}
+			}
+
+			// Remove tail if didn't eat
+			if (!ate) {
+				snake.pop();
+			}
+
+			// Update food animations
+			food.forEach(f => {
+				f.pulseScale += f.pulseDirection;
+				if (f.pulseScale <= 0.8 || f.pulseScale >= 1) {
+					f.pulseDirection *= -1;
+				}
+
+				f.sparkles.forEach(s => {
+					s.y -= s.speed;
+					if (s.y < 0) {
+						s.y = config.cellSize;
+						s.x = Math.random() * config.cellSize;
+					}
+				});
+			});
+
+			// Update power-up animations
+			powerUps.forEach(p => {
+				p.pulseScale += p.pulseDirection;
+				if (p.pulseScale <= 0.7 || p.pulseScale >= 1) {
+					p.pulseDirection *= -1;
+				}
+				p.rotation += 0.1;
+			});
+		}
+
+		// Render game
+		function render() {
+			// Clear canvas
+			ctx.fillStyle = "#000";
+			ctx.fillRect(0, 0, config.gridSize, config.gridSize);
+
+			// Draw grid
+			ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+			ctx.lineWidth = 1;
+
+			for (let x = 0; x < config.gridSize; x += config.cellSize) {
+				ctx.beginPath();
+				ctx.moveTo(x, 0);
+				ctx.lineTo(x, config.gridSize);
+				ctx.stroke();
+			}
+
+			for (let y = 0; y < config.gridSize; y += config.cellSize) {
+				ctx.beginPath();
+				ctx.moveTo(0, y);
+				ctx.lineTo(config.gridSize, y);
+				ctx.stroke();
+			}
+
+			// Draw snake
+			snake.forEach((segment, index) => {
+				if (index === 0) {
+					// Draw head
+					if (activePowerUp) {
+						// Draw powered-up head if SVG is available
+						if (images.headPowerUp) {
+							ctx.drawImage(images.headPowerUp, segment.x, segment.y, config.cellSize, config.cellSize);
+						} else {
+							// Fallback
+							ctx.fillStyle = activePowerUp.type.color;
+							ctx.beginPath();
+							ctx.arc(
+							segment.x + config.cellSize / 2,
+							segment.y + config.cellSize / 2,
+							config.cellSize / 2,
+							0, Math.PI * 2
+							);
+							ctx.fill();
+						}
+					} else {
+						// Draw normal head
+						if (images.head) {
+							ctx.drawImage(images.head, segment.x, segment.y, config.cellSize, config.cellSize);
+						} else {
+							// Fallback
+							ctx.fillStyle = "#4ade80";
+							ctx.beginPath();
+							ctx.arc(
+							segment.x + config.cellSize / 2,
+							segment.y + config.cellSize / 2,
+							config.cellSize / 2,
+							0, Math.PI * 2
+							);
+							ctx.fill();
+						}
+					}
+				} else {
+					// Draw body with gradient from head color to tail
+					const colorProgress = index / snake.length;
+					let baseColor = activePowerUp ? activePowerUp.type.color : "#4ade80";
+
+					// Interpolate to darker color
+					const r = parseInt(baseColor.slice(1, 3), 16);
+					const g = parseInt(baseColor.slice(3, 5), 16);
+					const b = parseInt(baseColor.slice(5, 7), 16);
+
+					const darkR = Math.floor(r * (1 - colorProgress * 0.7));
+					const darkG = Math.floor(g * (1 - colorProgress * 0.5));
+					const darkB = Math.floor(b * (1 - colorProgress * 0.3));
+
+					const segmentColor = `rgb(${darkR}, ${darkG}, ${darkB})`;
+
+					// Draw rounded segment
+					ctx.fillStyle = segmentColor;
+					ctx.beginPath();
+					ctx.arc(
+					segment.x + config.cellSize / 2,
+					segment.y + config.cellSize / 2,
+					(config.cellSize / 2) * (1 - colorProgress * 0.3),
+					0, Math.PI * 2
+					);
+					ctx.fill();
+				}
+			});
+
+			// Draw food
+			food.forEach(f => {
+				// Draw main food
+				ctx.fillStyle = f.color;
+				ctx.beginPath();
+				ctx.arc(
+				f.x + config.cellSize / 2,
+				f.y + config.cellSize / 2,
+				(config.cellSize / 2) * f.pulseScale,
+				0, Math.PI * 2
+				);
+				ctx.fill();
+
+				// Draw sparkles
+				ctx.fillStyle = "#fff";
+				f.sparkles.forEach(s => {
+					ctx.beginPath();
+					ctx.arc(
+					f.x + s.x,
+					f.y + s.y,
+					s.size,
+					0, Math.PI * 2
+					);
+					ctx.fill();
+				});
+			});
+
+			// Draw power-ups
+			powerUps.forEach(p => {
+				ctx.save();
+				ctx.translate(p.x + config.cellSize / 2, p.y + config.cellSize / 2);
+				ctx.rotate(p.rotation);
+
+				// Draw star shape
+				ctx.fillStyle = p.color;
+				ctx.beginPath();
+				for (let i = 0; i < 5; i++) {
+					const angle = (i * 2 * Math.PI / 5) - Math.PI / 2;
+					const outerRadius = (config.cellSize / 2) * p.pulseScale;
+					const innerRadius = outerRadius * 0.4;
+
+					// Outer point
+					const outerX = Math.cos(angle) * outerRadius;
+					const outerY = Math.sin(angle) * outerRadius;
+
+					if (i === 0) {
+						ctx.moveTo(outerX, outerY);
+					} else {
+						ctx.lineTo(outerX, outerY);
+					}
+
+					// Inner point
+					const innerAngle = angle + Math.PI / 5;
+					const innerX = Math.cos(innerAngle) * innerRadius;
+					const innerY = Math.sin(innerAngle) * innerRadius;
+					ctx.lineTo(innerX, innerY);
+				}
+				ctx.closePath();
+				ctx.fill();
+
+				// Draw glow
+				ctx.strokeStyle = `rgba(255, 255, 255, ${0.5 * p.pulseScale})`;
+				ctx.lineWidth = 2;
+				ctx.stroke();
+
+				ctx.restore();
+			});
+
+			// Draw ghost mode visual effect
+			if (activePowerUp?.type.name === 'ghost') {
+				ctx.fillStyle = "rgba(148, 163, 184, 0.15)";
+				ctx.fillRect(0, 0, config.gridSize, config.gridSize);
+
+				// Draw boundary indicators
+				ctx.strokeStyle = "#94a3b8";
+				ctx.lineWidth = 5;
+				ctx.setLineDash([15, 15]);
+				ctx.strokeRect(0, 0, config.gridSize, config.gridSize);
+				ctx.setLineDash([]);
+
+				playSound('ghost')
+			}
+		}
+
+		// End game
+		function endGame() {
+			gameActive = false;
+
+			if (score > highScore) {
+				highScore = score;
+				localStorage.setItem('snakeHighScore', highScore);
+				highScoreElement.textContent = `Melhor Score: ${highScore}`;
+			}
+
+			finalScore.textContent = `⭐ ${score}`;
+			highScoreElement.textContent = `⭐ máximo ${highScore}`;
+			gameOver.style.display = 'block';
+
+			setTimeout(() => {
+				playSound('game-over')
+			}, 1500)
+		}
+
+		// Load images
+		function loadImages() {
+			// Load head image
+			const headSvg = document.getElementById("snakeHead");
+			const headImg = new Image();
+			const headData = new XMLSerializer().serializeToString(headSvg);
+			const headUrl = URL.createObjectURL(new Blob([headData], { type: "image/svg+xml" }));
+			headImg.onload = () => {
+				images.head = headImg;
+				URL.revokeObjectURL(headUrl);
+			};
+			headImg.src = headUrl;
+
+			// Load powered-up head image
+			const powerHeadSvg = document.getElementById("snakeHeadPowerUp");
+			const powerHeadImg = new Image();
+			const powerHeadData = new XMLSerializer().serializeToString(powerHeadSvg);
+			const powerHeadUrl = URL.createObjectURL(new Blob([powerHeadData], { type: "image/svg+xml" }));
+			powerHeadImg.onload = () => {
+				images.headPowerUp = powerHeadImg;
+				URL.revokeObjectURL(powerHeadUrl);
+			};
+			powerHeadImg.src = powerHeadUrl;
+		}
+
+		// Event listeners
+		document.addEventListener('keydown', e => {
+			if (!gameActive) {
+				if (e.key === ' ' || e.key === 'Enter') {
+					initGame();
+				}
+				return;
+			}
+
+			// Handle pause
+			if (e.key === ' ') {
+				gamePaused = !gamePaused;
+				return;
+			}
+
+			// Prevent opposite direction
+			if (e.key === 'ArrowUp' && direction.y === 0) {
+				nextDirection = { x: 0, y: -config.cellSize };
+			} else if (e.key === 'ArrowDown' && direction.y === 0) {
+				nextDirection = { x: 0, y: config.cellSize };
+			} else if (e.key === 'ArrowLeft' && direction.x === 0) {
+				nextDirection = { x: -config.cellSize, y: 0 };
+			} else if (e.key === 'ArrowRight' && direction.x === 0) {
+				nextDirection = { x: config.cellSize, y: 0 };
+			}
+		});
+
+		restartButton.addEventListener('click', initGame);
+
+		// Initialize
+		loadImages();
+
+		// Start screen - wait for user input
+		startGame.style.display = 'block';
+		document.getElementById('restartButton').textContent = 'Começar';
+
+		function playSound(name, options = { loop: false, isMusic: false }) {
+            const audio = new Audio(`./assets/audio/${name}.mp3`);
+            audio.loop = options.loop;
+
+            // Handle background music
+            if (options.isMusic) {
+                if (currentBackgroundAudio) {
+                    currentBackgroundAudio.pause();
+                    currentBackgroundAudio.currentTime = 0;
+                }
+                currentBackgroundAudio = audio;
+            } else {
+                // Handle sound effects
+                if (currentEffectAudio) {
+                    currentEffectAudio.pause();
+                    currentEffectAudio.currentTime = 0;
+                }
+                currentEffectAudio = audio;
+            }
+
+            audio.play().catch(error => {
+                console.error('Error playing sound:', error);
+            });
+        }
+
+	</script>
+</body>
+</html>

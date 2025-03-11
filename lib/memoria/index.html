@@ -3,229 +3,289 @@
 <head>
     <meta charset="UTF-8">
     <title>Memory Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            min-height: 100vh;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-            position: relative;
-            background: #1e1e2f;
-        }
+        /* General Body Styles */
+body {
+    font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    position: relative;
+    background: #1e1e2f;
+}
 
-        /* Animated Background Layers */
-        body::before, body::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 150%;
-            height: 150%;
-            background: radial-gradient(circle at center, #6366f1, #a855f7, #f43f5e, #10b981);
-            animation: moveBackground 20s linear infinite alternate;
-            z-index: -1;
-            opacity: 0.4;
-            filter: blur(100px);
-        }
+/* Animated Background Layers */
+body::before, body::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, #6366f1, #a855f7, #f43f5e, #10b981);
+    animation: moveBackground 20s linear infinite alternate;
+    z-index: -1;
+    opacity: 0.4;
+    filter: blur(100px);
+}
 
-        /* Second Layer with Different Animation */
-        body::after {
-            animation: moveBackground 30s linear infinite alternate-reverse;
-            opacity: 0.3;
-        }
+body::after {
+    animation: moveBackground 30s linear infinite alternate-reverse;
+    opacity: 0.3;
+}
 
-        /* Keyframes for Background Motion */
-        @keyframes moveBackground {
-            0% {
-                transform: translate(0, 0) scale(1);
-            }
-            50% {
-                transform: translate(20%, 20%) scale(1.2);
-            }
-            100% {
-                transform: translate(-20%, -20%) scale(1);
-            }
-        }
+/* Main Game Container */
+#container {
+    display: none;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 2.5vw;
+    border-radius: 1rem;
+    width: 80vw;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow: hidden;
+    box-shadow: 0 0 40px rgba(163, 77, 255, 0.5), 0 0 80px rgba(163, 77, 255, 0.3);
+    animation: glowEffect 4s ease-in-out infinite alternate;
+}
 
-        /* Main Game Container */
-        #container {
-            display: none;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 2rem;
-            border-radius: 1rem;
-            box-shadow: 0 0 40px rgba(163, 77, 255, 0.5), 0 0 80px rgba(163, 77, 255, 0.3);
-            position: relative;
-            animation: glowEffect 4s ease-in-out infinite alternate;
-        }
+/* Subtle Glowing Effect */
+@keyframes glowEffect {
+    0% { box-shadow: 0 0 20px rgba(163, 77, 255, 0.3), 0 0 40px rgba(163, 77, 255, 0.2); }
+    100% { box-shadow: 0 0 40px rgba(163, 77, 255, 0.5), 0 0 80px rgba(163, 77, 255, 0.3); }
+}
 
-        /* Subtle Glowing Effect */
-        @keyframes glowEffect {
-            0% { box-shadow: 0 0 20px rgba(163, 77, 255, 0.3), 0 0 40px rgba(163, 77, 255, 0.2); }
-            100% { box-shadow: 0 0 40px rgba(163, 77, 255, 0.5), 0 0 80px rgba(163, 77, 255, 0.3); }
-        }
+.category-name {
+    position: absolute;
+    top: clamp(2rem, 15vh, 5vh);
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: bold;
+    color: #9c96ff;
+    text-shadow: 0 0 10px rgb(44 40 107);
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    z-index: 5;
+    text-align: center;
+    white-space: nowrap;
+}
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            padding: 10px;
-            background: #efefef;
-            border-radius: 10px;
-        }
+/* Header Styling */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    background: #efefef;
+    border-radius: 10px;
+}
 
-        .start-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10;
-        }
+/* Start Button */
+.start-button {
+    background: #6366f1;
+    color: white;
+    padding: clamp(0.8rem, 2vw, 1.5rem) clamp(1.5rem, 4vw, 3rem);
+    font-size: clamp(1.2rem, 4vw, 2rem);
+    border: none;
+    border-radius: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
 
-        .start-button {
-            background: #6366f1;
-            color: white;
-            padding: 1.5rem 3rem;
-            font-size: 2rem;
-            border: none;
-            border-radius: 1rem;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
+.start-button:hover {
+    background: #4f46e5;
+}
 
-        .start-button:hover {
-            background: #4f46e5;
-        }
+/* Button and Select */
+button {
+    background: #6366f1;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: clamp(1rem, 3vw, 1.2rem);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
 
-        .memorize-label {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 1rem 2rem;
-            border-radius: 0.5rem;
-            font-size: 2.5rem;
-            display: none;
-            z-index: 10;
-        }
+button:hover {
+    background: #4f46e5;
+}
 
-        .stats {
-            display: flex;
-            font-size: 1.25rem;
-            width: 16rem;
-        }
+select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-color: #6366f1;
+    color: white;
+    padding: 0 35px 0 20px;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: clamp(1rem, 3vw, 1.2rem);
+    cursor: pointer;
+    position: relative;
+    transition: background-color 0.2s;
+    background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M7 10l4 5 4-5z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: calc(100% - 6px) center;
+    background-size: 30px;
+}
 
-        .stat, .timer {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 5px; /* Adds space between emoji and text */
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            text-align: center;
-            font-size: 20px;
-        }
+@media (max-width: 768px) {
+    select {
+        width: 25px;
+        height: 25px;
+        padding: 0;
+        border-radius: 50%;
+        background-position: center;
+        background-size: 23px;
+        text-indent: -9999px;
+        margin-top: 9px;
+    }
 
-        .timer {
-            transition: font-size 0.3s ease, text-shadow 0.3s ease;
-            width: 100%;
-        }
+    select option {
+        padding: 10px 15px;
+        background-color: #6366f1;
+        color: white;
+        font-size: 1rem;
+        cursor: pointer;
+    }
+}
 
-        /* Glow Effect when less than 10 seconds */
-        .timer.glow {
-            color: #ff3333;
-            text-shadow: 0 0 10px #ff3333, 0 0 20px #ff3333, 0 0 30px #ff0000;
-        }
+/* Hover effect */
+select:hover {
+    background-color: #4f46e5;
+}
 
-        .game-grid {
-            display: grid;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
+/* Memorize Label */
+.memorize-label {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 0.5rem;
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    display: none;
+    z-index: 10;
+}
 
-        .card {
-            aspect-ratio: 1;
-            font-size: 2.5rem;
-            background: #fff;
-            border: 2px solid #e5e7eb;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.3s ease;
-            transform-style: preserve-3d;
-        }
+/* Stats Container */
+.stats {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
 
-        .card.flipped {
-            transform: rotateY(180deg);
-        }
+/* Stat and Timer */
+.stat, .timer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 0.4rem 0.8rem;
+    border-radius: 0.5rem;
+    font-size: clamp(1.3rem, 3vw, 1.2rem);
+}
 
-        .card:hover {
-            border-color: #6366f1;
-        }
+/* Timer Glow */
+.timer.glow {
+    color: #ff3333;
+    text-shadow: 0 0 10px #ff3333, 0 0 20px #ff3333, 0 0 30px #ff0000;
+}
 
-        .card-front, .card-back {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            backface-visibility: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+/* Game Grid */
+.game-grid {
+    display: grid;
+    gap: 1vw;
+    grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+}
 
-        .card-back {
-            background: #6366f1;
-            transform: rotateY(180deg);
-            border-radius: 0.3rem;
-        }
+/* Card Styling */
+.card {
+    aspect-ratio: 1;
+    font-size: clamp(1.5rem, 8vw, 3rem);
+    background: #fff;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease;
+    transform-style: preserve-3d;
+}
 
-        button, select {
-            background: #6366f1;
-            color: white;
-            padding-right: 15px;
-            border: none;
-            padding: 10px 15px 10px 18px;
-            border-radius: 0.5rem;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
+.card.flipped {
+    transform: rotateY(180deg);
+}
 
-        button:hover {
-            background: #4f46e5;
-        }
+.card:hover {
+    border-color: #6366f1;
+}
 
-        .game-over {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-size: 2rem;
-            flex-direction: column;
-            gap: 1rem;
-        }
+/* Card Sides */
+.card-front, .card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
-        .game-over.show {
-            display: flex;
-        }
+.card-back {
+    background: #6366f1;
+    transform: rotateY(180deg);
+    border-radius: 0.3rem;
+}
+
+/* Game Over Modal */
+.game-over {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 1rem;
+    color: white;
+    font-size: clamp(1.5rem, 4vw, 2rem);
+}
+
+.win-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: #10b981;
+    padding: 2rem 4rem;
+    border-radius: 1rem;
+    font-size: clamp(2rem, 6vw, 4rem);
+    font-weight: bold;
+    z-index: 20;
+    display: none;
+    text-shadow: 0 0 20px #10b981, 0 0 40px #10b981;
+}
+
+.game-over.show {
+    display: flex;
+}
+
+
     </style>
 </head>
 <body>
@@ -233,23 +293,28 @@
         <button id="start" class="start-button">Iniciar Jogo</button>
     </div>
     <div id="container">
+        <div id="categoryName" class="category-name"></div>
+
         <div class="header">
             <div class="stats">
-                <div class="stat">🏆 <span id="score">0</span></div>
+                <div class="stat">🏆 <span id="wins">0</span></div>
+                <div class="stat">❌ <span id="fails">0</span></div>
+                <div class="stat">⭐ <span id="score">0</span></div>
                 <div class="timer">⏰ <span id="timer">60s</span></div>
+                <select id="gridSize">
+                    <option value="4x4">4x4</option>
+                    <option value="4x5">4x5</option>
+                    <option value="5x5">5x5</option>
+                </select>
             </div>
-
-            <select id="gridSize">
-                <option value="4x4">4x4</option>
-                <option value="4x5">4x5</option>
-                <option value="5x5">5x5</option>
-            </select>
 
             <div id="memorizeLabel" class="memorize-label">MEMORIZE AS CARTAS</div>
 
         </div>
         <div class="game-grid" id="gameGrid"></div>
     </div>
+
+    <div id="winMessage" class="win-message">BOA!</div>
 
     <div class="game-over" id="gameOver">
         <h2>Fim de Jogo!</h2>
@@ -258,58 +323,79 @@
     </div>
 
     <script>
-        const emojis = [
-            // Animais
-            '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🦁', '🐯',
-
-            // Comidas
-            '🍔', '🍟', '🍕', '🌭', '🍗', '🍖', '🥪', '🥗', '🍿', '🍝',
-
-            // Esportes
-            '⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🥊', '🏓', '⛳', '🚴',
-
-            // Flores e Plantas
-            '🌹', '🌻', '🌼', '🌸', '🌷', '💐', '🌺', '🌿', '🍀', '🌾',
-
-            // Transportes
-            '🚗', '🚕', '🚙', '🚌', '🚎', '🏎️', '🚓', '🚑', '🚒', '🚚',
-
-            // Clima
-            '☀️', '🌤️', '⛅', '🌧️', '⛈️', '❄️', '🌪️', '🌈', '🌙', '⭐',
-
-            // Frutas
-            '🍎', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🍍', '🥭', '🥝',
-
-            // Profissões
-            '👩‍⚕️', '👨‍⚕️', '👩‍🏫', '👨‍🏫', '👩‍💻', '👨‍💻', '👩‍🚀', '👨‍🚀', '👩‍🍳', '👨‍🍳',
-
-            // Instrumentos Musicais
-            '🎸', '🎺', '🎷', '🥁', '🎻', '🎹', '🪕', '🪘', '🎼', '🎤',
-
-            // Animais Marinhos
-            '🐠', '🐟', '🐡', '🦈', '🐬', '🐳', '🐋', '🦭', '🦀', '🦐',
-
-            // Creepy & Bizarre
-            '👻', '☠️', '💀', '🦴', '🧛', '🧟', '🦷', '🕷️', '🕸️', '🦠',
-
-            '🧞', '🧙', '👹', '👺', '👽', '👾', '🤖', '⚰️', '🪦', '🩸',
-
-            // Signs
-            '⚠️', '🚸', '⛔', '🚫', '🔞', '♻️', '🆘', '🚷', '🛑', '📵'
+        const emojiCategories = [
+            {
+                name: 'Bicharada Divertida',
+                emojis: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🦁', '🐯']
+            },
+            {
+                name: 'Banquete Maluco',
+                emojis: ['🍔', '🍟', '🍕', '🌭', '🍗', '🍖', '🥪', '🥗', '🍿', '🍝']
+            },
+            {
+                name: 'Esporte é Vida',
+                emojis: ['⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🥊', '🏓', '⛳', '🚴']
+            },
+            {
+                name: 'Flores Encantadas',
+                emojis: ['🌹', '🌻', '🌼', '🌸', '🌷', '💐', '🌺', '🌿', '🍀', '🌾']
+            },
+            {
+                name: 'Brum Brum Aventuras',
+                emojis: ['🚗', '🚕', '🚙', '🚌', '🚎', '🏎️', '🚓', '🚑', '🚒', '🚚']
+            },
+            {
+                name: 'Clima Maluco',
+                emojis: ['☀️', '🌤️', '⛅', '🌧️', '⛈️', '❄️', '🌪️', '🌈', '🌙', '⭐']
+            },
+            {
+                name: 'Frutas do Paraíso',
+                emojis: ['🍎', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🍍', '🥭', '🥝']
+            },
+            {
+                name: 'Profissões Geniais',
+                emojis: ['👩‍⚕️', '👨‍⚕️', '👩‍🏫', '👨‍🏫', '👩‍💻', '👨‍💻', '👩‍🚀', '👨‍🚀', '👩‍🍳', '👨‍🍳']
+            },
+            {
+                name: 'Orquestra Maluca',
+                emojis: ['🎸', '🎺', '🎷', '🥁', '🎻', '🎹', '🪕', '🪘', '🎼', '🎤']
+            },
+            {
+                name: 'Mistérios do Mar',
+                emojis: ['🐠', '🐟', '🐡', '🦈', '🐬', '🐳', '🐋', '🦭', '🦀', '🦐']
+            },
+            {
+                name: 'Coisas Sinistras',
+                emojis: ['👻', '☠️', '💀', '🦴', '🧛', '🧟', '🦷', '🕷️', '🕸️', '🦠']
+            },
+            {
+                name: 'Lendas e Magias',
+                emojis: ['🧞', '🧙', '👹', '👺', '👽', '👾', '🤖', '⚰️', '🪦', '🩸']
+            },
+            {
+                name: 'Sinais Misteriosos',
+                emojis: ['⚠️', '🚸', '⛔', '🚫', '🔞', '♻️', '🆘', '🚷', '🛑', '📵']
+            }
         ];
-
 
         let flippedCards = [];
         let matchedPairs = 0;
         let totalPairs = 0;
+        let wins = 0;
+        let currentCategory = null;
         let score = 0;
+        let fails = 0;
         let timeLeft = 60;
         let gameTimer;
         let isGameOver = false;
         let canFlip = false;
-        let currentAudio = null;
+        let currentBackgroundAudio = null;
+        let currentEffectAudio = null;
 
         document.getElementById('start').addEventListener('click', () => {
+            setTimeout(() => {
+                adjustBoardForDevice();
+            }, 100);
             document.getElementById('startOverlay').style.display = 'none';
             document.getElementById('memorizeLabel').style.display = 'block';
             startGame();
@@ -332,18 +418,26 @@
         function createGame() {
             const container = document.getElementById('container');
             const gameGrid = document.getElementById('gameGrid');
+            const categoryName = document.getElementById('categoryName');
             const gridSize = document.getElementById('gridSize').value;
             const [cols, rows] = gridSize.split('x').map(Number);
             let totalCards = cols * rows;
 
-            // Ensure total cards are even for valid pairing
             if (totalCards % 2 !== 0) {
                 totalCards -= 1;
             }
 
             totalPairs = totalCards / 2;
-            const selectedEmojis = shuffleArray(emojis).slice(0, totalPairs);
+
+            // Select a random, different category
+            let availableCategories = emojiCategories.filter(cat => cat !== currentCategory);
+            currentCategory = availableCategories[Math.floor(Math.random() * availableCategories.length)];
+
+            const selectedEmojis = shuffleArray(currentCategory.emojis).slice(0, totalPairs);
             const gameEmojis = shuffleArray([...selectedEmojis, ...selectedEmojis]);
+
+            // Display the category name
+            categoryName.textContent = currentCategory.name;
 
             container.style.display = 'block';
             gameGrid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
@@ -399,6 +493,9 @@
                 playSound('match');
                 checkWinCondition();
             } else {
+                fails++;
+                score -= 5
+                document.getElementById('fails').textContent = fails;
                 playSound('no-match');
                 setTimeout(() => {
                     card1.classList.remove('flipped');
@@ -421,10 +518,6 @@
             const maxFontSize = 32;
             const maxTime = 60;
             const remainingTime = Math.max(0, timeLeft);
-
-            // Calculate the proportional font size
-            const fontSize = minFontSize + ((maxTime - remainingTime) / maxTime) * (maxFontSize - minFontSize);
-            timerElement.style.fontSize = `${fontSize}px`;
 
             // Apply glow effect if time is less than 10 seconds
             if (remainingTime <= 10) {
@@ -452,13 +545,36 @@
         function endGame(isWin) {
             clearInterval(gameTimer);
             isGameOver = true;
-            document.getElementById('finalScore').textContent = score;
-            document.getElementById('gameOver').classList.add('show');
+
             if (isWin) {
+                wins++;
+                document.getElementById('wins').textContent = wins;
                 playSound('win');
+                showWinMessage();
+
+                setTimeout(() => {
+                    // Upgrade board size based on wins
+                    if (wins === 3) {
+                        document.getElementById('gridSize').value = '4x5';
+                    } else if (wins === 5) {
+                        document.getElementById('gridSize').value = '5x5';
+                    }
+                    restartGame();
+                }, 2000);
             } else {
+                document.getElementById('finalScore').textContent = score;
+                document.getElementById('gameOver').classList.add('show');
                 playSound('lose');
             }
+        }
+
+        function showWinMessage() {
+            const winMessage = document.getElementById('winMessage');
+            winMessage.style.display = 'block';
+
+            setTimeout(() => {
+                winMessage.style.display = 'none';
+            }, 2000);
         }
 
         function restartGame() {
@@ -471,36 +587,45 @@
             flippedCards = [];
             matchedPairs = 0;
             score = 0;
+            fails = 0;
             timeLeft = 60;
             isGameOver = false;
             canFlip = false;
 
             document.getElementById('score').textContent = score;
+            document.getElementById('fails').textContent = fails;
             document.getElementById('timer').textContent = timeLeft;
             document.getElementById('gameOver').classList.remove('show');
             clearInterval(gameTimer);
 
-            stopSound()
-
+            // Stop any existing music and play new track
             const randomTrack = `music${Math.floor(Math.random() * 4) + 1}`;
-            playSound(randomTrack, true);
+            playSound(randomTrack, { loop: true, isMusic: true });
         }
 
-        function playSound(name, repeat = false) {
-            // Create and play new audio
-            currentAudio = new Audio(`./assets/audio/${name}.mp3`);
-            currentAudio.loop = repeat;
-            currentAudio.play().catch(error => {
+        function playSound(name, options = { loop: false, isMusic: false }) {
+            const audio = new Audio(`./assets/audio/${name}.mp3`);
+            audio.loop = options.loop;
+
+            // Handle background music
+            if (options.isMusic) {
+                if (currentBackgroundAudio) {
+                    currentBackgroundAudio.pause();
+                    currentBackgroundAudio.currentTime = 0;
+                }
+                currentBackgroundAudio = audio;
+            } else {
+                // Handle sound effects
+                if (currentEffectAudio) {
+                    currentEffectAudio.pause();
+                    currentEffectAudio.currentTime = 0;
+                }
+                currentEffectAudio = audio;
+            }
+
+            audio.play().catch(error => {
                 console.error('Error playing sound:', error);
             });
-        }
-
-        function stopSound() {
-            if (currentAudio) {
-                currentAudio.pause();
-                currentAudio.currentTime = 0;
-                currentAudio = null;
-            }
         }
 
     </script>

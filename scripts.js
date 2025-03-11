@@ -60,7 +60,6 @@ function parseSnippets(data) {
         snippets.push(currentSnippet);
     }
 
-    console.log('All snippets:', snippets); // Debugging
     return snippets;
 }
 
@@ -157,6 +156,21 @@ function createCodeBoxes(snippets) {
 
             runCodeButton.onclick = () => {
                 const gameUrl = 'https://hotflame.com.br/lib/tetris';
+
+                // Open the game page in a new tab
+                window.open(gameUrl, '_blank');
+            };
+
+            terminal.appendChild(runCodeButton);
+        }
+
+        if (snippet.title.toLowerCase().startsWith('aventuras')) {
+            const runCodeButton = document.createElement('button');
+            runCodeButton.className = 'run-btn';
+            runCodeButton.innerText = 'Executar Código';
+
+            runCodeButton.onclick = () => {
+                const gameUrl = 'https://hotflame.com.br/lib/cobrinha';
 
                 // Open the game page in a new tab
                 window.open(gameUrl, '_blank');
